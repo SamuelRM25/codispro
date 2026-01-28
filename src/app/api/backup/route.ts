@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { Prisma } from '@prisma/client'
-
-const prisma = new PrismaClient()
 
 export async function GET() {
   try {
@@ -15,6 +12,7 @@ export async function GET() {
       vehicleTrips,
       vehicleSpareParts,
       shipments,
+      shipmentItems,
       pettyCash,
       projects,
       projectStaff,
@@ -30,6 +28,7 @@ export async function GET() {
       db.vehicleTrip.findMany(),
       db.vehicleSparePart.findMany(),
       db.shipment.findMany(),
+      db.shipmentItem.findMany(),
       db.pettyCash.findMany(),
       db.project.findMany(),
       db.projectStaff.findMany(),
@@ -51,6 +50,7 @@ export async function GET() {
         vehicleTrips,
         vehicleSpareParts,
         shipments,
+        shipmentItems,
         pettyCash,
         projects,
         projectStaff,
@@ -67,6 +67,7 @@ export async function GET() {
         vehicleTrips: vehicleTrips.length,
         vehicleSpareParts: vehicleSpareParts.length,
         shipments: shipments.length,
+        shipmentItems: shipmentItems.length,
         pettyCash: pettyCash.length,
         projects: projects.length,
         projectStaff: projectStaff.length,
@@ -116,13 +117,14 @@ async function restoreBackup(backup: any) {
       )
     }
 
-    await prisma.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
       await tx.toolLoan.deleteMany({})
       await tx.locationLog.deleteMany({})
       await tx.payrollEntry.deleteMany({})
       await tx.projectExpense.deleteMany({})
       await tx.projectStaff.deleteMany({})
       await tx.pettyCash.deleteMany({})
+      await tx.shipmentItem.deleteMany({})
       await tx.shipment.deleteMany({})
       await tx.vehicleSparePart.deleteMany({})
       await tx.vehicleTrip.deleteMany({})
@@ -133,7 +135,7 @@ async function restoreBackup(backup: any) {
       await tx.user.deleteMany({})
     })
 
-    await prisma.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
       if (data.users?.length > 0) {
         await tx.user.createMany({ data: data.users, skipDuplicates: true })
       }
@@ -157,6 +159,9 @@ async function restoreBackup(backup: any) {
       }
       if (data.shipments?.length > 0) {
         await tx.shipment.createMany({ data: data.shipments, skipDuplicates: true })
+      }
+      if (data.shipmentItems?.length > 0) {
+        await tx.shipmentItem.createMany({ data: data.shipmentItems, skipDuplicates: true })
       }
       if (data.pettyCash?.length > 0) {
         await tx.pettyCash.createMany({ data: data.pettyCash, skipDuplicates: true })
