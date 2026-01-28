@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 
 export default function Home() {
   const router = useRouter()
-  const { isAuthenticated, login } = useAuthStore()
+  const { isAuthenticated, login, _hasHydrated } = useAuthStore()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
@@ -21,10 +21,10 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (isClient && isAuthenticated) {
+    if (isClient && _hasHydrated && isAuthenticated) {
       router.push('/dashboard')
     }
-  }, [isClient, isAuthenticated, router])
+  }, [isClient, _hasHydrated, isAuthenticated, router])
 
   if (!isClient) return null
 
