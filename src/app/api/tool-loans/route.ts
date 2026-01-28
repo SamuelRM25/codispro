@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (!tool) {
       return NextResponse.json(
-        { error: 'Herramienta no encontrada' },
+        { error: 'Herramienta no encontrada o código inválido' },
         { status: 404 }
       )
     }
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating tool loan:', error)
     return NextResponse.json(
-      { error: 'Error al crear préstamo' },
+      { error: 'Error al crear préstamo', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

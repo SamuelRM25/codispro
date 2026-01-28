@@ -81,7 +81,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error creating backup:', error)
     return NextResponse.json(
-      { error: 'Error al crear backup' },
+      { error: 'Error al crear backup', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing backup action:', error)
     return NextResponse.json(
-      { error: 'Error al procesar acción' },
+      { error: 'Error al procesar acción', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

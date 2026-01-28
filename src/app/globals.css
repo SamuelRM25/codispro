@@ -131,8 +131,10 @@
   }
 
   .bg-grid-pattern {
-    background-image: radial-gradient(oklch(0.25 0.05 250 / 0.1) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-image:
+      radial-gradient(circle at 50% 50%, rgba(255, 165, 0, 0.05), transparent 40%),
+      radial-gradient(oklch(0.25 0.05 250 / 0.1) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px;
   }
 
   .blob {
@@ -144,7 +146,11 @@
   }
 
   .blob-accent {
-    @apply bg-accent w-[400px] h-[400px];
+    @apply bg-orange-500 w-[400px] h-[400px];
+  }
+
+  .blob-warning {
+    @apply bg-yellow-500 w-[300px] h-[300px];
   }
 }
 
