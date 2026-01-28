@@ -50,76 +50,90 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-2 bg-primary/5 rounded-2xl">
-              <img src="/logo.png" alt="CODISPRO" className="w-24 h-24 object-contain" />
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-white/20 glass dark:glass-dark shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-700">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
+        <CardHeader className="space-y-6 text-center pt-10">
+          <div className="flex justify-center">
+            <div className="p-4 bg-white/60 dark:bg-black/40 rounded-[2.5rem] shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-500">
+              <img src="/logo.png" alt="CODISPRO" className="w-20 h-20 object-contain" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">CODISPRO</CardTitle>
-          <CardDescription className="text-base">
-            Sistema de Gestión Integral
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase transition-colors">
+              CODISPRO
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-[0.4em] text-primary dark:text-accent/80">
+              Gestión Integral de Proyectos
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-10 px-8">
           {isAuthenticated && _hasHydrated ? (
-            <div className="space-y-4">
-              <p className="text-center text-slate-600 dark:text-slate-400">
-                Has iniciado sesión como <span className="font-semibold">{useAuthStore.getState().user?.name}</span>
-              </p>
+            <div className="space-y-4 pt-4">
+              <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Sesión activa como</p>
+                <p className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-tight">{useAuthStore.getState().user?.name}</p>
+              </div>
               <Button
                 onClick={() => router.push('/dashboard')}
-                className="w-full gap-2"
+                className="w-full gap-3 h-14 text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all rounded-2xl bg-primary hover:bg-primary/90"
                 size="lg"
               >
-                Continuar al Dashboard
-                <ArrowRight className="w-4 h-4" />
+                Ingresar al Sistema
+                <ArrowRight className="w-5 h-5" />
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => useAuthStore.getState().logout()}
-                className="w-full"
+                className="w-full h-12 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-destructive transition-colors"
               >
                 Cerrar Sesión
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="code" className="text-sm font-medium">
-                  Código de Acceso
-                </label>
-                <Input
-                  id="code"
-                  type="text"
-                  placeholder="Ingresa tu código"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="text-center text-2xl tracking-wider"
-                  maxLength={10}
-                  autoFocus
-                />
+            <form onSubmit={handleLogin} className="space-y-8 pt-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <label htmlFor="code" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Código de Acceso
+                  </label>
+                  <span className="h-px flex-1 bg-slate-200 dark:bg-white/10 ml-4" />
+                </div>
+                <div className="group relative">
+                  <Input
+                    id="code"
+                    type="password"
+                    placeholder="••••••"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="h-20 text-center text-4xl font-black tracking-[0.6em] bg-white/40 dark:bg-black/20 border-white/20 rounded-3xl focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                    maxLength={10}
+                    autoFocus
+                  />
+                </div>
               </div>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-16 text-base font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/25 hover:shadow-primary/40 transition-all rounded-3xl bg-primary hover:bg-primary/90"
                 disabled={loading || !code.trim()}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Ingresando...
-                  </>
+                  <Loader2 className="h-7 w-7 animate-spin" />
                 ) : (
-                  'Ingresar'
+                  'Validar Acceso'
                 )}
               </Button>
             </form>
           )}
         </CardContent>
       </Card>
+
+      <div className="fixed bottom-10 left-0 w-full text-center pointer-events-none">
+        <p className="text-[9px] font-black text-slate-400 tracking-[0.5em] uppercase opacity-50">
+          © 2025 CODISPRO Solutions • Enterprise Edition
+        </p>
+      </div>
     </div>
   )
 }

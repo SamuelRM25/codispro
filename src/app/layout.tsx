@@ -40,14 +40,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-      { url: "/icons/icon-1024.png", sizes: "1024x1024", type: "image/png" }
-    ],
-    apple: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }
-    ]
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
   openGraph: {
     title: "CODISPRO",
@@ -62,10 +56,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground relative overflow-x-hidden min-h-screen`}
       >
+        {/* Global Decorative Background */}
+        <div className="fixed inset-0 -z-10 bg-grid-pattern opacity-[0.4]" />
+        <div className="fixed top-[-10%] left-[-10%] -z-10 blob blob-primary animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="fixed bottom-[-10%] right-[-10%] -z-10 blob blob-accent animate-pulse" style={{ animationDuration: '12s' }} />
+
         {children}
         <Toaster />
         <PWAInstall />

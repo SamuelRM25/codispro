@@ -51,13 +51,15 @@
   --card-foreground: oklch(0.15 0.02 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 250);
-  --primary: oklch(0.25 0.05 250); /* Deep Navy */
+  --primary: oklch(0.25 0.05 250);
+  /* Deep Navy */
   --primary-foreground: oklch(0.98 0.01 250);
   --secondary: oklch(0.92 0.02 250);
   --secondary-foreground: oklch(0.25 0.05 250);
   --muted: oklch(0.92 0.02 250);
   --muted-foreground: oklch(0.4 0.02 250);
-  --accent: oklch(0.45 0.15 250); /* Professional Blue */
+  --accent: oklch(0.45 0.15 250);
+  /* Professional Blue */
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.6 0.2 25);
   --border: oklch(0.9 0.02 250);
@@ -79,7 +81,8 @@
 }
 
 .dark {
-  --background: oklch(0.08 0.01 250); /* Deep Black/Blue */
+  --background: oklch(0.08 0.01 250);
+  /* Deep Black/Blue */
   --foreground: oklch(0.95 0.01 250);
   --card: oklch(0.12 0.02 250);
   --card-foreground: oklch(0.95 0.01 250);
@@ -114,13 +117,32 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
+    @apply bg-white/20 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31, 38, 135, 0.07)];
   }
+
   .glass-dark {
-    @apply bg-black/40 backdrop-blur-md border border-white/10;
+    @apply bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0, 0, 0, 0.37)];
   }
+
   .navy-gradient {
-    background: linear-gradient(135deg, oklch(0.15 0.05 250) 0%, oklch(0.1 0 0) 100%);
+    background: linear-gradient(135deg, oklch(0.2 0.04 250) 0%, oklch(0.1 0.02 250) 100%);
+  }
+
+  .bg-grid-pattern {
+    background-image: radial-gradient(oklch(0.25 0.05 250 / 0.1) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .blob {
+    @apply absolute rounded-full blur-[100px] opacity-20 pointer-events-none;
+  }
+
+  .blob-primary {
+    @apply bg-primary w-[500px] h-[500px];
+  }
+
+  .blob-accent {
+    @apply bg-accent w-[400px] h-[400px];
   }
 }
 
@@ -128,7 +150,8 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20;
   }
 }
