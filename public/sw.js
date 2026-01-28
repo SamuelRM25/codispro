@@ -35,6 +35,27 @@ self.addEventListener('fetch', (event) => {
   // Ignore non-http(s) requests (e.g. from extensions)
   if (!(event.request.url.indexOf('http') === 0)) return;
 
+  // Network First strategy for the root and HTML pages
+  // This ensures that we always check for a new version of the app structure if online
+  if (event.request.mode === 'navigate' ||
+    (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) ||
+    event.request.url.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {
