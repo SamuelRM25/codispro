@@ -54,12 +54,12 @@ export default function Home() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-4 bg-primary/10 rounded-full">
-              <HardHat className="w-12 h-12 text-primary" />
+            <div className="p-2 bg-primary/5 rounded-2xl">
+              <img src="/logo.png" alt="CODISPRO" className="w-24 h-24 object-contain" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">CODISPRO</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-3xl font-bold tracking-tight">CODISPRO</CardTitle>
+          <CardDescription className="text-base">
             Sistema de Gestión Integral
           </CardDescription>
         </CardHeader>

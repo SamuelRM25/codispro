@@ -45,56 +45,56 @@ const modules = [
     title: 'Trabajadores',
     description: 'Gestión del personal de la constructora',
     icon: Users,
-    color: 'bg-blue-500',
+    color: 'bg-primary',
   },
   {
     id: 'tools',
     title: 'Herramientas',
     description: 'Inventario y control de préstamos',
     icon: Wrench,
-    color: 'bg-orange-500',
+    color: 'bg-accent',
   },
   {
     id: 'vehicles',
     title: 'Vehículos',
     description: 'Control de flota y repuestos',
     icon: Truck,
-    color: 'bg-green-500',
+    color: 'bg-primary/80',
   },
   {
     id: 'shipments',
     title: 'Envíos',
     description: 'Control de envíos de materiales',
     icon: Package,
-    color: 'bg-purple-500',
+    color: 'bg-accent/80',
   },
   {
     id: 'petty-cash',
     title: 'Caja Chica',
     description: 'Control de ingresos y egresos',
     icon: DollarSign,
-    color: 'bg-yellow-500',
+    color: 'bg-primary/70',
   },
   {
     id: 'projects',
     title: 'Proyectos',
     description: 'Gestión integral de proyectos',
     icon: Building2,
-    color: 'bg-pink-500',
+    color: 'bg-accent/70',
   },
   {
     id: 'location',
     title: 'Ubicación',
     description: 'Rastreo GPS en tiempo real',
     icon: MapPin,
-    color: 'bg-red-500',
+    color: 'bg-primary/60',
   },
   {
     id: 'calendar',
     title: 'Calendario',
     description: 'Vista de todas las actividades',
     icon: CalendarIcon,
-    color: 'bg-cyan-500',
+    color: 'bg-accent/60',
   },
 ]
 
@@ -201,12 +201,12 @@ export default function DashboardPage() {
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <HardHat className="w-6 h-6 text-primary" />
+            <div className="p-1 bg-primary/10 rounded-lg">
+              <img src="/logo.png" alt="CODISPRO" className="w-10 h-10 object-contain" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">CODISPRO</h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <h1 className="text-xl font-bold tracking-tight">CODISPRO</h1>
+              <p className="text-xs text-slate-500 font-medium">
                 Bienvenido, {user?.name}
               </p>
             </div>
@@ -286,15 +286,18 @@ export default function DashboardPage() {
             return (
               <Card
                 key={module.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer group"
+                className="hover:shadow-xl transition-all duration-300 cursor-pointer group border-slate-200/50 dark:border-slate-800/50 hover:border-primary/50 dark:hover:border-primary/50 overflow-hidden"
                 onClick={() => router.push(`/dashboard/${module.id}`)}
               >
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 <CardHeader>
-                  <div className={`${module.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <div className={`${module.color} w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-primary/20`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{module.title}</CardTitle>
-                  <CardDescription>{module.description}</CardDescription>
+                  <CardTitle className="text-xl font-bold">{module.title}</CardTitle>
+                  <CardDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                    {module.description}
+                  </CardDescription>
                 </CardHeader>
               </Card>
             )
