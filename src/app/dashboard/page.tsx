@@ -196,7 +196,6 @@ export default function DashboardPage() {
   ] : []
 
   return (
-  return (
     <div className="flex flex-col min-h-screen bg-transparent">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full glass dark:glass-dark border-b border-white/10">
@@ -399,16 +398,15 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
-    </div>
-  )
-}
 
-{/* Footer */ }
-<footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto">
-  <div className="container mx-auto px-4 py-4 text-center text-sm text-slate-600 dark:text-slate-400">
-    <p>© 2025 CODISPRO - Sistema de Gestión</p>
-  </div>
-</footer>
-    </div >
+      {/* Footer */}
+      <footer className="w-full border-t border-white/5 bg-transparent py-6">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+            © 2025 CODISPRO Solutions • Enterprise Edition
+          </p>
+        </div>
+      </footer>
+    </div>
   )
 }
