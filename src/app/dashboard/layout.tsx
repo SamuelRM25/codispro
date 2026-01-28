@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -11,14 +11,19 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { isAuthenticated, user, _hasHydrated } = useAuthStore()
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
-    if (_hasHydrated && !isAuthenticated) {
+    setHasMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (hasMounted && _hasHydrated && !isAuthenticated) {
       router.push('/')
     }
-  }, [isAuthenticated, _hasHydrated, router])
+  }, [isAuthenticated, _hasHydrated, hasMounted, router])
 
-  if (!_hasHydrated || !isAuthenticated || !user) {
+  if (!hasMounted || !_hasHydrated || !isAuthenticated || !user) {
     return null
   }
 
