@@ -1,0 +1,297 @@
+// Constructora Management System - Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTENTICACIÓN ============
+model User {
+  id        String   @id @default(cuid())
+  code      String   @unique // Código de acceso único
+  name      String
+  role      String   @default("user") // admin, manager, worker
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  toolLoans      ToolLoan[]
+  vehicleTrips   VehicleTrip[]
+  shipments      Shipment[]
+  payrollEntries PayrollEntry[]
+  locationLogs   LocationLog[]
+  pettyCash      PettyCash[]
+}
+
+// ============ TRABAJADORES ============
+model Worker {
+  id              String    @id @default(cuid())
+  firstName       String
+  lastName        String
+  dpi             String?   // DPI (documento de identidad)
+  photo           String?   // URL de la foto
+  birthDate       DateTime? // Fecha de nacimiento
+  phone           String?
+  address         String?
+  position        String?   // Cargo/Posición
+  hourlyRate      Float?    // Tarifa por hora
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relaciones
+  toolLoans       ToolLoan[]
+  shipments       Shipment[]
+  projectStaff    ProjectStaff[]
+  payrollEntries  PayrollEntry[]
+}
+
+// ============ HERRAMIENTAS ============
+model Tool {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  barcode     String?   @unique // Código de barras
+  photo       String?   // URL de la foto
+  category    String?
+  status      String    @default("available") // available, in_use, maintenance, retired
+  location    String?   // Ubicación en bodega
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  loans       ToolLoan[]
+}
+
+model ToolLoan {
+  id         String   @id @default(cuid())
+  toolId     String
+  userId     String
+  workerId   String?
+  loanDate   DateTime @default(now())
+  returnDate DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones
+  tool       Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+  worker     Worker?  @relation(fields: [workerId], references: [id])
+}
+
+// ============ VEHÍCULOS ============
+model Vehicle {
+  id          String         @id @default(cuid())
+  name        String
+  plate       String         @unique // Placa del vehículo
+  type        String         // truck, machine, van, car
+  brand       String?
+  model       String?
+  year        Int?
+  color       String?
+  photo       String?       // URL de la foto
+  status      String         @default("available") // available, in_use, maintenance, retired
+  mileage     Float?
+  fuelType    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relaciones
+  trips       VehicleTrip[]
+  spareParts  VehicleSparePart[]
+  shipments   Shipment[]
+}
+
+model VehicleSparePart {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  name        String
+  description String?
+  quantity    Int
+  unitPrice   Float?
+  purchaseDate DateTime?
+  invoicePhoto String? // URL de la foto del comprobante/factura
+  supplier    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleTrip {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  driverId    String?
+  userId      String
+  startDate   DateTime
+  endDate     DateTime?
+  origin      String?
+  destination String?
+  distance    Float?   // kilómetros
+  purpose     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// ============ ENVÍOS ============
+model Shipment {
+  id              String   @id @default(cuid())
+  vehicleId       String
+  driverId        String?
+  projectId       String?
+  userId          String
+  shipmentDate    DateTime @default(now())
+  
+  // Legacy fields (optional)
+  materialName    String?
+  sentQuantity    Float?
+  receivedQuantity Float?
+  receivedDate    DateTime?
+  
+  status          String   @default("pending") // pending, sent, received, discrepancy
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  items           ShipmentItem[]
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
+  driver          Worker?  @relation(fields: [driverId], references: [id])
+  project         Project? @relation(fields: [projectId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model ShipmentItem {
+  id               String   @id @default(cuid())
+  shipmentId       String
+  materialName     String
+  sentQuantity     Float
+  unit             String   @default("unidad") // m3, kg, lbs, ton, unidad, etc.
+  receivedQuantity Float?
+  notes            String?
+
+  shipment         Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+}
+
+// ============ CAJA CHICA ============
+model PettyCash {
+  id          String   @id @default(cuid())
+  type        String   // income, expense
+  amount      Float
+  category    String?  // fuel, supplies, food, etc.
+  description String
+  date        DateTime @default(now())
+  userId      String
+  projectId   String?
+  receipt     String?  // URL del recibo/factura
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User     @relation(fields: [userId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+}
+
+// ============ PROYECTOS ============
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  address     String?
+  startDate   DateTime
+  endDate     DateTime?
+  status      String   @default("planning") // planning, active, on_hold, completed, cancelled
+  budget      Float?
+  progress    Float    @default(0) // Porcentaje de avance 0-100
+  client      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  staff       ProjectStaff[]
+  shipments   Shipment[]
+  expenses    ProjectExpense[]
+  pettyCash   PettyCash[]
+  payroll     PayrollEntry[]
+}
+
+model ProjectStaff {
+  id        String   @id @default(cuid())
+  projectId String
+  workerId  String
+  role      String?  // Supervisor, obrero, etc.
+  startDate DateTime
+  endDate   DateTime?
+  salary    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+model ProjectExpense {
+  id        String   @id @default(cuid())
+  projectId String
+  category  String   // materials, equipment, labor, etc.
+  amount    Float
+  description String
+  date      DateTime @default(now())
+  receipt   String?  // URL del recibo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PayrollEntry {
+  id        String   @id @default(cuid())
+  projectId String?
+  workerId  String
+  userId    String
+  period    String   // YYYY-MM
+  hours     Float?
+  overtime  Float?
+  salary    Float
+  bonuses   Float    @default(0)
+  deductions Float    @default(0)
+  total     Float
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  project   Project? @relation(fields: [projectId], references: [id])
+  worker    Worker   @relation(fields: [workerId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ============ UBICACIÓN EN TIEMPO REAL ============
+model LocationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  vehicleId String?
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  user      User     @relation(fields: [userId], references: [id])
+}
