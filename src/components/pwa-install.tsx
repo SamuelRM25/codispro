@@ -20,7 +20,10 @@ export default function PWAInstall() {
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      setShowInstallDialog(true)
+      
+      if (localStorage.getItem('pwaPromptDismissed') !== 'true') {
+        setShowInstallDialog(true)
+      }
     }
 
     window.addEventListener('beforeinstallprompt', handler)
@@ -54,6 +57,7 @@ export default function PWAInstall() {
   }
 
   const handleDismiss = () => {
+    localStorage.setItem('pwaPromptDismissed', 'true')
     setShowInstallDialog(false)
     setDeferredPrompt(null)
   }

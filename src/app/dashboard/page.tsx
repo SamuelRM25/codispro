@@ -1,115 +1,48 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuthStore } from '@/stores/auth-store'
 import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
-  LayoutDashboard,
   Users,
   Wrench,
   Truck,
   Package,
-  DollarSign,
   Building2,
-  LogOut,
-  HardHat,
-  MapPin,
-  TrendingUp,
   AlertTriangle,
-  ArrowRight,
-  RefreshCw,
-  Download,
   Database,
+  Sun,
+  Clock,
+  Activity,
   Calendar as CalendarIcon,
+  TrendingUp,
+  Wind
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts'
-
-const modules = [
-  {
-    id: 'workers',
-    title: 'Trabajadores',
-    description: 'Gestión del personal de la constructora',
-    icon: Users,
-    color: 'bg-primary',
-  },
-  {
-    id: 'tools',
-    title: 'Herramientas',
-    description: 'Inventario y control de préstamos',
-    icon: Wrench,
-    color: 'bg-accent',
-  },
-  {
-    id: 'vehicles',
-    title: 'Vehículos',
-    description: 'Control de flota y repuestos',
-    icon: Truck,
-    color: 'bg-primary/80',
-  },
-  {
-    id: 'shipments',
-    title: 'Envíos',
-    description: 'Control de envíos de materiales',
-    icon: Package,
-    color: 'bg-accent/80',
-  },
-  {
-    id: 'petty-cash',
-    title: 'Caja Chica',
-    description: 'Control de ingresos y egresos',
-    icon: DollarSign,
-    color: 'bg-primary/70',
-  },
-  {
-    id: 'projects',
-    title: 'Proyectos',
-    description: 'Gestión integral de proyectos',
-    icon: Building2,
-    color: 'bg-accent/70',
-  },
-  {
-    id: 'location',
-    title: 'Ubicación',
-    description: 'Rastreo GPS en tiempo real',
-    icon: MapPin,
-    color: 'bg-primary/60',
-  },
-  {
-    id: 'calendar',
-    title: 'Calendario',
-    description: 'Vista de todas las actividades',
-    icon: CalendarIcon,
-    color: 'bg-accent/60',
-  },
-]
 
 const COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899']
 
-export default function DashboardPage() {
+export default function DashboardWidgetsPage() {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
-  const [activeModule, setActiveModule] = useState<string | null>(null)
+  const { user } = useAuthStore()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
+  const [time, setTime] = useState(new Date())
 
   useEffect(() => {
     setIsClient(true)
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(timer)
   }, [])
 
   const fetchStats = async () => {
@@ -121,11 +54,9 @@ export default function DashboardPage() {
         setStats(data)
       } else {
         setStats(null)
-        console.error('Stats error:', data.error)
       }
     } catch (error) {
       setStats(null)
-      console.error('Fetch stats error:', error)
     } finally {
       setLoading(false)
     }
@@ -137,30 +68,6 @@ export default function DashboardPage() {
     }
   }, [isClient])
 
-  const handleLogout = () => {
-    logout()
-    toast.success('Sesión cerrada')
-    router.push('/')
-  }
-
-  const handleExportPDF = async (type: string) => {
-    try {
-      const response = await fetch(`/api/reports/pdf?type=${type}`)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `reporte_${type}_${new Date().toISOString().split('T')[0]}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Reporte PDF generado')
-    } catch (error) {
-      toast.error('Error al generar reporte PDF')
-    }
-  }
-
   const handleBackup = async () => {
     try {
       const response = await fetch('/api/backup')
@@ -169,26 +76,16 @@ export default function DashboardPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `backup_constructora_${new Date().toISOString().split('T')[0]}.json`
+      a.download = `backup_codispro_${new Date().toISOString().split('T')[0]}.json`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success('Backup creado exitosamente')
+      toast.success('Backup exportado con éxito')
     } catch (error) {
-      toast.error('Error al crear backup')
+      toast.error('Error al exportar base de datos')
     }
   }
-
-  const projectsChartData = stats?.projects ? Object.entries(stats.projects).map(([status, count]) => ({
-    name: status,
-    value: count as number,
-  })) : []
-
-  const vehiclesChartData = stats?.vehicles ? Object.entries(stats.vehicles).map(([status, count]) => ({
-    name: status,
-    value: count as number,
-  })) : []
 
   const toolsChartData = stats?.tools ? [
     { name: 'Disponibles', value: stats.tools?.available || 0 },
@@ -196,217 +93,227 @@ export default function DashboardPage() {
   ] : []
 
   return (
-    <div className="flex flex-col min-h-screen bg-transparent">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full glass dark:glass-dark border-b border-white/10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-1.5 bg-white/50 dark:bg-white/10 rounded-xl shadow-sm border border-white/20">
-              <img src="/logo.png" alt="CODISPRO" className="w-10 h-10 object-contain" />
-            </div>
+    <div className="flex flex-col space-y-8 pb-10">
+
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic border-l-4 border-blue-600 pl-4">Panel de Inteligencia</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-tight pl-5">
+            Estado Maestro de Operaciones. Bienvenido, <span className="font-bold text-slate-900 dark:text-white uppercase">{user?.name}</span>.
+          </p>
+        </div>
+        <div className="flex shrink-0">
+          <Button variant="default" className="rounded-xl shadow-xl shadow-blue-500/20 bg-[#0f172a] hover:bg-slate-800 text-white font-black transition-all px-8 h-12" onClick={handleBackup}>
+            <Database className="w-4 h-4 mr-2" />
+            EXPORTAR BACKUP
+          </Button>
+        </div>
+      </div>
+
+      {/* TOP WIDGETS GRID: WEATHER & CLOCK & STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Real-time Clock Widget */}
+        <Card className="border-none shadow-2xl bg-[#1e293b] text-white rounded-[2rem] overflow-hidden relative group h-full">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
+            <Clock className="w-32 h-32" />
+          </div>
+          <CardContent className="p-10 flex flex-col justify-between h-full min-h-[220px] relative z-10 text-white">
             <div>
-              <h1 className="text-lg font-black tracking-tighter text-primary dark:text-white uppercase transition-colors">
-                CODISPRO
-              </h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Constructora Proyectos
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {user?.name}
-              </p>
-              <p className="text-[9px] font-bold text-primary dark:text-accent tracking-widest uppercase">
-                Administrador
-              </p>
-            </div>
-
-            <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden md:block" />
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchStats}
-                disabled={loading}
-                className="hover:bg-primary/5 rounded-full"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="gap-2 text-slate-500 hover:text-destructive font-bold transition-all rounded-full px-4"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Salir</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-10 space-y-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-4xl font-black tracking-tight dark:text-white">Panel de Control</h2>
-            <p className="text-base text-slate-500 dark:text-slate-400 font-medium tracking-tight">
-              Bienvenido al centro de operaciones. Selecciona un módulo para gestionar.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="rounded-xl border-white/20 glass-dark text-white font-bold" onClick={handleBackup}>
-              <Database className="w-4 h-4 mr-2" />
-              Backup
-            </Button>
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        {!loading && stats && stats.counts && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              { label: 'Trabajadores', val: stats.counts.workers, icon: Users, col: 'text-blue-500' },
-              { label: 'Herramientas', val: stats.counts.tools, icon: Wrench, col: 'text-orange-500' },
-              { label: 'Vehículos', val: stats.counts.vehicles, icon: Truck, col: 'text-green-500' },
-              { label: 'Proyectos', val: stats.counts.projects, icon: Building2, col: 'text-pink-500' },
-              { label: 'Envíos', val: stats.counts.shipments, icon: Package, col: 'text-purple-500' },
-            ].map((kpi, i) => (
-              <Card key={i} className="border-none glass dark:glass-dark shadow-md overflow-hidden group hover:scale-[1.02] transition-transform">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{kpi.label}</p>
-                    <kpi.icon className={`w-4 h-4 ${kpi.col} opacity-50`} />
+              <p className="text-blue-400 font-black tracking-[0.2em] text-[10px] uppercase mb-2">HORA LOCAL EN TIEMPO REAL</p>
+              {isClient ? (
+                <div className="flex items-baseline gap-2">
+                  <div className="text-5xl lg:text-6xl font-black tracking-tighter drop-shadow-md">
+                    {time.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true }).split(' ')[0]}
                   </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="text-3xl font-black">{kpi.val}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Alerts Section (Subtle) */}
-        {!loading && stats && stats.overdueToolLoans.length > 0 && (
-          <div className="p-4 border-l-4 border-orange-500 rounded-2xl glass-dark bg-orange-500/5 animate-in fade-in slide-in-from-left-4 duration-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 text-orange-600 dark:text-orange-400">
-                <AlertTriangle className="w-5 h-5" />
-                <p className="font-bold">
-                  {stats.overdueToolLoans.length} herramientas tienen el plazo de devolución vencido
-                </p>
-              </div>
-              <Button variant="link" onClick={() => router.push('/dashboard/tools')} className="text-orange-600 dark:text-orange-400 font-black p-0">
-                Revisar Ahora <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Module Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {modules.map((module) => {
-            const Icon = module.icon
-            return (
-              <Card
-                key={module.id}
-                className="group relative h-48 border-white/5 dark:border-white/10 glass dark:glass-dark hover:border-primary/50 transition-all duration-500 cursor-pointer overflow-hidden rounded-3xl"
-                onClick={() => router.push(`/dashboard/${module.id}`)}
-              >
-                <div className={`absolute -right-4 -top-4 w-24 h-24 ${module.color} opacity-[0.03] group-hover:opacity-[0.08] rounded-full blur-2xl transition-all duration-500 group-hover:scale-150`} />
-                <CardHeader className="h-full flex flex-col justify-between p-6">
-                  <div className={`w-14 h-14 rounded-2xl ${module.color} flex items-center justify-center shadow-2xl shadow-primary/20 group-hover:scale-110 transition-transform duration-500`}>
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-black tracking-tight group-hover:text-primary transition-colors">{module.title}</CardTitle>
-                    <CardDescription className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
-                      {module.id === 'petty-cash' ? 'Finanzas' : 'Operaciones'}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-500">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ArrowRight className="w-4 h-4 text-primary" />
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold opacity-80 leading-none">{time.toLocaleTimeString('es-GT', { hour12: true }).split(' ')[1].toUpperCase()}</span>
+                    <span className="text-sm font-black text-blue-400 leading-none mt-1">.{time.getSeconds().toString().padStart(2, '0')}</span>
                   </div>
                 </div>
-              </Card>
-            )
-          })}
-        </div>
+              ) : (
+                <div className="text-6xl font-black tracking-tighter">--:--</div>
+              )}
+            </div>
+            {isClient && (
+              <p className="text-sm font-black mt-6 text-slate-400 uppercase tracking-widest">
+                {time.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Charts Section (Minimal) */}
-        {!loading && stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 pb-12">
-            <Card className="border-none glass dark:glass-dark rounded-3xl overflow-hidden shadow-2xl">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-xl font-black">Estado de Herramientas</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 pt-0">
-                <ResponsiveContainer width="100%" height={260}>
+        {/* Weather Widget */}
+        <Card className="border-none shadow-2xl bg-[#0f172a] text-white rounded-[2rem] overflow-hidden relative h-full">
+          <div className="absolute top-0 right-0 p-8 opacity-20">
+            <Sun className="w-32 h-32 text-orange-500 blur-sm" />
+          </div>
+          <CardContent className="p-10 flex flex-col justify-between h-full min-h-[220px] relative z-10 text-white">
+            <div>
+              <p className="text-orange-500 font-black tracking-[0.2em] text-[10px] uppercase mb-2">CLIMA / SEDE CENTRAL</p>
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-orange-500/10 rounded-3xl border border-orange-500/20">
+                  <Sun className="w-12 h-12 text-orange-500 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
+                </div>
+                <div className="text-6xl font-black tracking-tighter text-white drop-shadow-md">
+                  24°C
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 mt-6">
+              <span className="flex items-center gap-2 bg-slate-800 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full border border-slate-700/50 text-slate-400">
+                <Wind className="w-3 h-3" /> PARCIALMENTE SOLEADO
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Core Quick Stats - Overview */}
+        {stats && (
+          <Card className="border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden min-h-[220px] h-full flex flex-col border border-slate-100 dark:border-white/5">
+            <CardHeader className="p-10 pb-4">
+              <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center justify-between">
+                DISTRIBUCIÓN OPERATIVA <Activity className="w-4 h-4 text-blue-600" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-10 pb-10 pt-4 flex-1 flex flex-col justify-center gap-8">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl"><Building2 className="w-6 h-6 text-blue-600" /></div>
+                  <p className="font-black text-xs uppercase tracking-widest text-slate-500">Proyectos Activos</p>
+                </div>
+                <p className="font-black text-4xl text-slate-900 dark:text-white leading-none tracking-tighter">{stats.counts?.projects || 0}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl"><Truck className="w-6 h-6 text-emerald-600" /></div>
+                  <p className="font-black text-xs uppercase tracking-widest text-slate-500">Flota Logística</p>
+                </div>
+                <p className="font-black text-4xl text-slate-900 dark:text-white leading-none tracking-tighter">{stats.counts?.vehicles || 0}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* KPI SUMMARY CARDS */}
+      {!loading && stats && stats.counts && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'PERSONAL ACTIVO', val: stats.counts.workers, icon: Users, col: 'text-blue-600', bg: 'bg-blue-600' },
+            { label: 'EQUIPOS BODEGA', val: stats.counts.tools, icon: Wrench, col: 'text-orange-600', bg: 'bg-orange-600' },
+            { label: 'ENVÍOS HOY', val: stats.counts.shipments, icon: Package, col: 'text-indigo-600', bg: 'bg-indigo-600' },
+            { label: 'NOTIFICACIONES', val: stats.overdueToolLoans?.length || 0, icon: AlertTriangle, col: 'text-rose-600', bg: 'bg-rose-600' },
+          ].map((kpi, i) => (
+            <Card key={i} className="border-none shadow-xl bg-white dark:bg-slate-900 rounded-3xl overflow-hidden group hover:scale-[1.02] transition-all">
+              <CardContent className="p-8 flex items-center gap-6">
+                <div className={`p-5 rounded-2xl ${kpi.bg} shadow-lg shadow-black/10`}>
+                  <kpi.icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-slate-900 dark:text-white leading-none mb-1">{kpi.val}</div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{kpi.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* FINANCIAL OVERVIEW SECTION */}
+      {!loading && stats && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Financial Card */}
+          <Card className="lg:col-span-2 border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="p-10 pb-6 border-b border-slate-50 dark:border-white/5 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Flujo de Capital Directo</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Análisis consolidado de caja chica</CardDescription>
+              </div>
+              <div className="h-12 w-12 bg-emerald-500/10 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div className="p-8 rounded-[2rem] bg-emerald-500/5 border-2 border-emerald-500/10 relative overflow-hidden group">
+                  <div className="absolute top-[-20px] right-[-20px] w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-4">INGRESOS DE CAPITAL</p>
+                  <p className="text-4xl font-black text-emerald-700 dark:text-emerald-400 tracking-tighter">Q{(stats.pettyCash?.income || 0).toLocaleString()}</p>
+                </div>
+                <div className="p-8 rounded-[2rem] bg-rose-500/5 border-2 border-rose-500/10 relative overflow-hidden group">
+                  <div className="absolute top-[-20px] right-[-20px] w-20 h-20 bg-rose-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                  <p className="text-[10px] font-black text-rose-600 uppercase tracking-[0.2em] mb-4">EGRESOS TOTALES</p>
+                  <p className="text-4xl font-black text-rose-700 dark:text-rose-400 tracking-tighter">Q{(stats.pettyCash?.expense || 0).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="p-8 bg-[#0f172a] rounded-[2rem] flex flex-col md:flex-row items-center justify-between text-white shadow-2xl shadow-black/30">
+                <div className="mb-4 md:mb-0 text-center md:text-left">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">SALDO DISPONIBLE EN CAJA</p>
+                  <p className="text-4xl font-black tracking-tighter text-white">Q{(stats.pettyCash?.balance || 0).toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest border-2 ${(stats.pettyCash?.balance || 0) >= 0 ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' : 'border-rose-500/50 text-rose-400 bg-rose-500/10'}`}>
+                    {((stats.pettyCash?.balance || 0) >= 0) ? 'LIQUIDEZ ALTA' : 'CRÍTICO'}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tools Status Chart Card */}
+          <Card className="border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden flex flex-col">
+            <CardHeader className="p-10 pb-6 border-b border-slate-50 dark:border-white/5">
+              <CardTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Inventario</CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Ubicación de activos</CardDescription>
+            </CardHeader>
+            <CardContent className="p-10 flex flex-col items-center justify-center gap-8 flex-1">
+              <div className="w-full h-[220px] relative">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={toolsChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
+                      cx="50%" cy="50%"
+                      innerRadius={50} outerRadius={80}
+                      paddingAngle={10} dataKey="value"
+                      stroke="rgba(0,0,0,0)"
                     >
                       {toolsChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+                    <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', fontWeight: 'bold' }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none glass dark:glass-dark rounded-3xl overflow-hidden shadow-2xl">
-              <CardHeader className="p-8 pb-2">
-                <div className="flex items-center justify-between w-full">
-                  <CardTitle className="text-xl font-black">Caja Chica</CardTitle>
-                  <div className={`${(stats.pettyCash?.balance || 0) >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'} px-4 py-1.5 rounded-full text-sm font-black`}>
-                    Q{(stats.pettyCash?.balance || 0).toFixed(2)}
-                  </div>
+                {/* Center text for the donut chart */}
+                <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                  <p className="text-3xl font-black text-slate-900 dark:text-white">{(stats.counts?.tools || 0)}</p>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Equipos</p>
                 </div>
-              </CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-6 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/20">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Ingresos</p>
-                    <p className="text-2xl font-black text-green-600">Q{(stats.pettyCash?.income || 0).toFixed(2)}</p>
+              </div>
+              <div className="w-full space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Bodega Central</span>
                   </div>
-                  <div className="p-6 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/20">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Egresos</p>
-                    <p className="text-2xl font-black text-red-600">Q{(stats.pettyCash?.expense || 0).toFixed(2)}</p>
-                  </div>
+                  <span className="font-black text-xl text-slate-900 dark:text-white leading-none">{stats.tools?.available || 0}</span>
                 </div>
-                <Button className="w-full h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20" onClick={() => router.push('/dashboard/petty-cash')}>
-                  Ver Detalles de Caja <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full border-t border-white/5 bg-transparent py-6">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-            © 2025 CODISPRO Solutions • Enterprise Edition
-          </p>
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">En Destino / Obra</span>
+                  </div>
+                  <span className="font-black text-xl text-slate-900 dark:text-white leading-none">{stats.tools?.inUse || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </footer>
+      )}
+
+      {/* FOOTER SPACER (Removing explicit footer, just padding) */}
+      <div className="h-4" />
     </div>
   )
 }

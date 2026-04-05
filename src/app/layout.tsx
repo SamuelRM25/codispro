@@ -60,11 +60,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground relative overflow-x-hidden min-h-screen`}
       >
-        {/* Global Decorative Background */}
-        <div className="fixed inset-0 -z-10 bg-grid-pattern opacity-[0.4]" />
-        <div className="fixed top-[-10%] left-[-10%] -z-10 blob blob-primary animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="fixed bottom-[-10%] right-[-10%] -z-10 blob blob-accent animate-pulse" style={{ animationDuration: '12s' }} />
-
         {children}
         <Toaster />
         <PWAInstall />

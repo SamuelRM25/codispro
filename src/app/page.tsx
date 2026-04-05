@@ -131,7 +131,7 @@ export default function Home() {
 
       <div className="fixed bottom-10 left-0 w-full text-center pointer-events-none">
         <p className="text-[9px] font-black text-slate-400 tracking-[0.5em] uppercase opacity-50">
-          © 2025 CODISPRO Solutions • Enterprise Edition
+          © 2025 RS SOLUTIONS • Enterprise Edition
         </p>
       </div>
     </div>

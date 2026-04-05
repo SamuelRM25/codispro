@@ -3,39 +3,21 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const [
-      users,
-      workers,
-      tools,
-      toolLoans,
-      vehicles,
-      vehicleTrips,
-      vehicleSpareParts,
-      shipments,
-      shipmentItems,
-      pettyCash,
-      projects,
-      projectStaff,
-      projectExpenses,
-      payrollEntries,
-      locationLogs,
-    ] = await Promise.all([
-      db.user.findMany(),
-      db.worker.findMany(),
-      db.tool.findMany(),
-      db.toolLoan.findMany(),
-      db.vehicle.findMany(),
-      db.vehicleTrip.findMany(),
-      db.vehicleSparePart.findMany(),
-      db.shipment.findMany(),
-      db.shipmentItem.findMany(),
-      db.pettyCash.findMany(),
-      db.project.findMany(),
-      db.projectStaff.findMany(),
-      db.projectExpense.findMany(),
-      db.payrollEntry.findMany(),
-      db.locationLog.findMany(),
-    ])
+    const users = await db.user.findMany()
+    const workers = await db.worker.findMany()
+    const tools = await db.tool.findMany()
+    const toolLoans = await db.toolLoan.findMany()
+    const vehicles = await db.vehicle.findMany()
+    const vehicleTrips = await db.vehicleTrip.findMany()
+    const vehicleSpareParts = await db.vehicleSparePart.findMany()
+    const shipments = await db.shipment.findMany()
+    const shipmentItems = await db.shipmentItem.findMany()
+    const pettyCash = await db.pettyCash.findMany()
+    const projects = await db.project.findMany()
+    const projectStaff = await db.projectStaff.findMany()
+    const projectExpenses = await db.projectExpense.findMany()
+    const payrollEntries = await db.payrollEntry.findMany()
+    const locationLogs = await db.locationLog.findMany()
 
     const backup = {
       version: '1.0',

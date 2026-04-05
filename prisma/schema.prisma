@@ -26,6 +26,8 @@ model User {
   payrollEntries PayrollEntry[]
   locationLogs   LocationLog[]
   pettyCash      PettyCash[]
+  invoices       Invoice[]
+  accessLogs     AccessLog[]
 }
 
 // ============ TRABAJADORES ============
@@ -41,6 +43,7 @@ model Worker {
   position        String?   // Cargo/Posición
   hourlyRate      Float?    // Tarifa por hora
   isActive        Boolean   @default(true)
+  hikvisionId     String?   @unique // ID en base de datos Terminal HikVision
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -49,6 +52,7 @@ model Worker {
   shipments       Shipment[]
   projectStaff    ProjectStaff[]
   payrollEntries  PayrollEntry[]
+  accessLogs      AccessLog[]
 }
 
 // ============ HERRAMIENTAS ============
@@ -226,6 +230,7 @@ model Project {
   expenses    ProjectExpense[]
   pettyCash   PettyCash[]
   payroll     PayrollEntry[]
+  invoices    Invoice[]
 }
 
 model ProjectStaff {
@@ -294,4 +299,101 @@ model LocationLog {
 
   // Relaciones
   user      User     @relation(fields: [userId], references: [id])
+}
+
+// ============ MÓDULO DE FACTURAS (FEL SAT GO Guatemala) ============
+
+model Company {
+  id        String   @id @default(cuid())
+  nit       String   @unique
+  name      String
+  address   String?
+  email     String?
+  phone     String?
+  
+  // SAT FEL credentials (assigned by Certificador)
+  felAlias  String? // usually an alias or username for API
+  felToken  String? // Token or password for certifier API
+  
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  invoices  Invoice[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  nit       String   @unique // NIT or CUI (DPI)
+  name      String
+  address   String?
+  email     String?
+  phone     String?
+  
+  invoices  Invoice[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id           String   @id @default(cuid())
+  invoiceType  String   @default("ISSUED") // "ISSUED" (Ventas) o "RECEIVED" (Gastos)
+  companyId    String?  // Opcional para facturas recibidas
+  clientId     String
+  userId       String   // que usuario lo creo
+  projectId    String?  // opcional, enlace a proyecto
+  
+  date         DateTime @default(now())
+  
+  // SAT FEL specific
+  numero       String?  // Número de factura (assigned by SAT/Certificador)
+  serie        String?
+  cae          String?  // Código de Autorización de Emisión
+  certDate     DateTime? // Fecha de certificación
+  
+  currency     String   @default("GTQ")
+  subTotal     Float
+  tax          Float    // IVA
+  total        Float
+  
+  status       String   @default("draft") // draft, issued, cancelled
+  
+  // XML and PDF files returned from Certificador
+  xmlUrl       String?
+  pdfUrl       String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  company      Company? @relation(fields: [companyId], references: [id])
+  client       Client   @relation(fields: [clientId], references: [id])
+  creator      User     @relation(fields: [userId], references: [id])
+  project      Project? @relation(fields: [projectId], references: [id])
+  items        InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float
+  unitPrice   Float
+  total       Float
+  
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+// ============ CONTROL DE ACCESO (HIKVISION) ============
+
+model AccessLog {
+  id          String   @id @default(cuid())
+  workerId    String?
+  userId      String?
+  doorName    String?  // Ej. "DS-KAS261 Principal"
+  status      String   @default("success") // success, denied
+  timestamp   DateTime @default(now())
+  
+  worker      Worker?  @relation(fields: [workerId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
 }
