@@ -7,6 +7,7 @@ const toolLoanSchema = z.object({
   userId: z.string(),
   workerId: z.string().optional(),
   notes: z.string().optional(),
+  photo: z.string().optional(),
 })
 
 export async function GET() {

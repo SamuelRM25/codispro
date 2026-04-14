@@ -80,6 +80,8 @@ model ToolLoan {
   loanDate   DateTime @default(now())
   returnDate DateTime?
   notes      String?
+  photo      String?  // URL foto tomada al sacar la herramienta
+  notified   Boolean  @default(false) // si el admin ya vio la notificación
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -154,6 +156,7 @@ model Shipment {
   id              String   @id @default(cuid())
   vehicleId       String
   driverId        String?
+  receiverId      String?  // ID del User con rol receptor asignado
   projectId       String?
   userId          String
   shipmentDate    DateTime @default(now())
@@ -164,7 +167,14 @@ model Shipment {
   receivedQuantity Float?
   receivedDate    DateTime?
   
-  status          String   @default("pending") // pending, sent, received, discrepancy
+  // Tracking fields
+  departurePhoto  String?   // foto tomada al salir
+  departureTime   DateTime? // hora de inicio de ruta
+  arrivalPhoto    String?   // foto tomada al llegar / recibir
+  arrivalTime     DateTime? // hora de entrega
+  receivedNotes   String?   // notas del receptor
+
+  status          String   @default("pending") // pending, verified, in_transit, received, discrepancy
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -184,7 +194,7 @@ model ShipmentItem {
   sentQuantity     Float
   unit             String   @default("unidad") // m3, kg, lbs, ton, unidad, etc.
   receivedQuantity Float?
-  notes            String?
+  receivedNotes    String?
 
   shipment         Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
 }
@@ -386,14 +396,34 @@ model InvoiceItem {
 
 // ============ CONTROL DE ACCESO (HIKVISION) ============
 
+model Terminal {
+  id              String   @id @default(cuid())
+  name            String
+  ip              String
+  port            Int      @default(80)
+  username        String   @default("admin")
+  password        String   // Debería estar encriptado en producción
+  serialNumber    String?  @unique
+  model           String?
+  lastSeen        DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  accessLogs      AccessLog[]
+}
+
 model AccessLog {
   id          String   @id @default(cuid())
+  terminalId  String?
   workerId    String?
   userId      String?
-  doorName    String?  // Ej. "DS-KAS261 Principal"
+  doorName    String?  // Ej. "Principal"
   status      String   @default("success") // success, denied
   timestamp   DateTime @default(now())
   
-  worker      Worker?  @relation(fields: [workerId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
+  terminal    Terminal? @relation(fields: [terminalId], references: [id])
+  worker      Worker?   @relation(fields: [workerId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
 }

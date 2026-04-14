@@ -3,64 +3,76 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    // Get all counts
+    const safeCount = async (model: any, where = {}) => {
+      try { return await model.count({ where }); } catch (e) { console.error(`Count failed for model`, e); return 0; }
+    }
+
+    // Get all counts with fallbacks
     const [workersCount, toolsCount, vehiclesCount, projectsCount, shipmentsCount] = await Promise.all([
-      db.worker.count({ where: { isActive: true } }),
-      db.tool.count(),
-      db.vehicle.count(),
-      db.project.count(),
-      db.shipment.count(),
+      safeCount(db.worker, { isActive: true }),
+      safeCount(db.tool),
+      safeCount(db.vehicle),
+      safeCount(db.project),
+      safeCount(db.shipment),
     ])
 
-    // Get tools status
+    // Get tools status with fallbacks
     const [availableTools, inUseTools] = await Promise.all([
-      db.tool.count({ where: { status: 'available' } }),
-      db.tool.count({ where: { status: 'in_use' } }),
+      safeCount(db.tool, { status: 'available' }),
+      safeCount(db.tool, { status: 'in_use' }),
     ])
 
-    // Get projects by status
-    const projectsByStatus = await db.project.groupBy({
-      by: ['status'],
-      _count: true,
-    })
+    // Get projects by status with fallback
+    let projectsByStatus = []
+    try {
+      projectsByStatus = await db.project.groupBy({ by: ['status'], _count: true })
+    } catch (e) { console.error('Projects groupBy failed', e); }
 
-    // Get vehicles by status
-    const vehiclesByStatus = await db.vehicle.groupBy({
-      by: ['status'],
-      _count: true,
-    })
+    // Get vehicles by status with fallback
+    let vehiclesByStatus = []
+    try {
+      vehiclesByStatus = await db.vehicle.groupBy({ by: ['status'], _count: true })
+    } catch (e) { console.error('Vehicles groupBy failed', e); }
 
-    // Get petty cash summary
-    const pettyCashIncome = await db.pettyCash.aggregate({
-      where: { type: 'income' },
-      _sum: { amount: true },
-    })
+    // Get petty cash summary with fallbacks
+    const getSum = async (type: string) => {
+      try {
+        const res = await db.pettyCash.aggregate({ where: { type }, _sum: { amount: true } })
+        return res._sum.amount || 0
+      } catch (e) { return 0; }
+    }
 
-    const pettyCashExpense = await db.pettyCash.aggregate({
-      where: { type: 'expense' },
-      _sum: { amount: true },
-    })
+    const [pettyCashIncome, pettyCashExpense] = await Promise.all([
+      getSum('income'),
+      getSum('expense')
+    ])
 
-    // Get recent shipments
-    const recentShipments = await db.shipment.findMany({
-      take: 10,
-      orderBy: { shipmentDate: 'desc' },
-      include: {
-        vehicle: { select: { name: true, plate: true } },
-        driver: { select: { firstName: true, lastName: true } },
-      },
-    })
+    // Get recent shipments with fallback
+    let recentShipments = []
+    try {
+      recentShipments = await db.shipment.findMany({
+        take: 10,
+        orderBy: { shipmentDate: 'desc' },
+        include: {
+          vehicle: { select: { name: true, plate: true } },
+          driver: { select: { firstName: true, lastName: true } },
+        },
+      })
+    } catch (e) { console.error('Shipments findMany failed', e); }
 
-    // Get tools not returned (loans without return date)
-    const overdueToolLoans = await db.toolLoan.findMany({
-      where: { returnDate: null },
-      include: {
-        tool: { select: { name: true } },
-        worker: { select: { firstName: true, lastName: true } },
-      },
-      orderBy: { loanDate: 'desc' },
-      take: 10,
-    })
+    // Get tools not returned with fallback
+    let overdueToolLoans = []
+    try {
+      overdueToolLoans = await db.toolLoan.findMany({
+        where: { returnDate: null },
+        include: {
+          tool: { select: { name: true } },
+          worker: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { loanDate: 'desc' },
+        take: 10,
+      })
+    } catch (e) { console.error('ToolLoans findMany failed', e); }
 
     return NextResponse.json({
       counts: {
@@ -74,26 +86,26 @@ export async function GET() {
         available: availableTools,
         inUse: inUseTools,
       },
-      projects: projectsByStatus.reduce((acc, item) => {
+      projects: projectsByStatus.reduce((acc: any, item: any) => {
         acc[item.status] = item._count
         return acc
       }, {} as Record<string, number>),
-      vehicles: vehiclesByStatus.reduce((acc, item) => {
+      vehicles: vehiclesByStatus.reduce((acc: any, item: any) => {
         acc[item.status] = item._count
         return acc
       }, {} as Record<string, number>),
       pettyCash: {
-        income: pettyCashIncome._sum.amount || 0,
-        expense: pettyCashExpense._sum.amount || 0,
-        balance: (pettyCashIncome._sum.amount || 0) - (pettyCashExpense._sum.amount || 0),
+        income: pettyCashIncome,
+        expense: pettyCashExpense,
+        balance: pettyCashIncome - pettyCashExpense,
       },
       recentShipments,
       overdueToolLoans,
     })
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
+    console.error('Fatal error fetching dashboard stats:', error)
     return NextResponse.json(
-      { error: 'Error al obtener estadísticas' },
+      { error: 'Error al obtener estadísticas del dashboard' },
       { status: 500 }
     )
   }

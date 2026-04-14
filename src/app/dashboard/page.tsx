@@ -18,8 +18,10 @@ import {
   Activity,
   Calendar as CalendarIcon,
   TrendingUp,
-  Wind
+  Wind,
+  Terminal,
 } from 'lucide-react'
+import { TerminalManager } from '@/components/terminal-manager'
 import { toast } from 'sonner'
 import {
   PieChart,
@@ -312,7 +314,12 @@ export default function DashboardWidgetsPage() {
         </div>
       )}
 
-      {/* FOOTER SPACER (Removing explicit footer, just padding) */}
+      {/* HARDWARE MANAGEMENT SECTION */}
+      <div className="pt-10 border-t border-slate-100 dark:border-white/5">
+        <TerminalManager />
+      </div>
+
+      {/* FOOTER SPACER */}
       <div className="h-4" />
     </div>
   )

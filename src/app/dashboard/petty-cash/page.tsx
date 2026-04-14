@@ -62,7 +62,7 @@ export default function PettyCashPage() {
   const [isClient, setIsClient] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
-  const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7))
+  const [monthFilter, setMonthFilter] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const [formData, setFormData] = useState({
