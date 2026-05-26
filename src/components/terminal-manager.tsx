@@ -91,11 +91,13 @@ export function TerminalManager() {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Seguro que deseas eliminar esta terminal?')) return
     try {
-      await fetch(`/api/hardware/hikvision/config?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/hardware/hikvision/config?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar terminal')
       toast.success('Terminal eliminada')
       fetchTerminals()
     } catch (err) {
-      toast.error('Error al eliminar')
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar')
     }
   }
 

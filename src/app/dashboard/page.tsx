@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Users,
@@ -12,17 +11,13 @@ import {
   Package,
   Building2,
   AlertTriangle,
-  Database,
   Sun,
   Clock,
   Activity,
-  Calendar as CalendarIcon,
   TrendingUp,
   Wind,
-  Terminal,
 } from 'lucide-react'
 import { TerminalManager } from '@/components/terminal-manager'
-import { toast } from 'sonner'
 import {
   PieChart,
   Pie,
@@ -70,25 +65,6 @@ export default function DashboardWidgetsPage() {
     }
   }, [isClient])
 
-  const handleBackup = async () => {
-    try {
-      const response = await fetch('/api/backup')
-      const data = await response.json()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `backup_codispro_${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Backup exportado con éxito')
-    } catch (error) {
-      toast.error('Error al exportar base de datos')
-    }
-  }
-
   const toolsChartData = stats?.tools ? [
     { name: 'Disponibles', value: stats.tools?.available || 0 },
     { name: 'En Uso', value: stats.tools?.inUse || 0 },
@@ -105,12 +81,7 @@ export default function DashboardWidgetsPage() {
             Estado Maestro de Operaciones. Bienvenido, <span className="font-bold text-slate-900 dark:text-white uppercase">{user?.name}</span>.
           </p>
         </div>
-        <div className="flex shrink-0">
-          <Button variant="default" className="rounded-xl shadow-xl shadow-blue-500/20 bg-[#0f172a] hover:bg-slate-800 text-white font-black transition-all px-8 h-12" onClick={handleBackup}>
-            <Database className="w-4 h-4 mr-2" />
-            EXPORTAR BACKUP
-          </Button>
-        </div>
+
       </div>
 
       {/* TOP WIDGETS GRID: WEATHER & CLOCK & STATS */}

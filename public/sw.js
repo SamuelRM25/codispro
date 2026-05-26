@@ -51,7 +51,10 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(async () => {
+          const cached = await caches.match(event.request)
+          return cached || new Response('App sin conexión', { status: 503 })
+        })
     );
     return;
   }
@@ -70,6 +73,8 @@ self.addEventListener('fetch', (event) => {
           cache.put(event.request, responseToCache)
         })
         return response
+      }).catch(() => {
+        return caches.match(event.request)
       })
     })
   )

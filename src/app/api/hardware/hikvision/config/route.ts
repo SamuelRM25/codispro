@@ -76,9 +76,10 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    await db.terminal.delete({ where: { id } });
+    await db.terminal.deleteMany({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[API Config DELETE Error]', error);
+    return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
   }
 }
