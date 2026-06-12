@@ -339,7 +339,7 @@ model Project {
   startDate   DateTime
   endDate     DateTime?
   status      ProjectStatus @default(PLANNING)
-  budget      Decimal?      @db.Decimal(16,2)
+  budget      Float?
   progress    Float         @default(0)
   client      String?
   createdAt   DateTime      @default(now())

@@ -19,6 +19,7 @@ import {
   Activity,
   Bell,
   X,
+  UserCog,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -33,6 +34,7 @@ const ADMIN_MENU = [
   { href: '/dashboard/shipments', label: 'Envíos', icon: Package },
   { href: '/dashboard/petty-cash', label: 'Caja Chica', icon: DollarSign },
   { href: '/dashboard/projects', label: 'Proyectos', icon: Building2 },
+  { href: '/dashboard/usuarios', label: 'Usuarios', icon: UserCog },
   { href: '/dashboard/calendar', label: 'Calendario', icon: CalendarIcon },
 ]
 
