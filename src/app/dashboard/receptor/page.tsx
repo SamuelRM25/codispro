@@ -135,7 +135,7 @@ export default function ReceptorDashboard() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => { signOut(); router.push('/') }}
+            onClick={() => { signOut({ redirectTo: '/' }) }}
             className="text-slate-400 hover:text-white hover:bg-red-500/20 rounded-xl"
           >
             <LogOut className="w-5 h-5" />

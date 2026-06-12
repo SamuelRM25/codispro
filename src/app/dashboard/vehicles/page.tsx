@@ -33,6 +33,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   ArrowLeft,
   Plus,
   Truck,
@@ -40,6 +50,7 @@ import {
   Package,
   FileText,
   Search,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -93,6 +104,8 @@ export default function VehiclesPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
   const [sparePartDialogOpen, setSparePartDialogOpen] = useState(false)
   const [tripDialogOpen, setTripDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [sparePartData, setSparePartData] = useState({
     name: '',
     quantity: 1,
@@ -123,6 +136,28 @@ export default function VehiclesPage() {
       resetVehicleForm()
     } catch (error) {
       toast.error('Error al crear vehículo')
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/vehicles/${deleteId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Error al eliminar vehículo')
+      }
+      toast.success('Vehículo eliminado')
+      if (selectedVehicleId === deleteId) setSelectedVehicleId(null)
+      setDeleteId(null)
+      fetchVehicles()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Error al eliminar vehículo'
+      )
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -264,7 +299,7 @@ export default function VehiclesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="type">Tipo</Label>
+                        <Label>Tipo</Label>
                         <Select
                           value={formData.type}
                           onValueChange={(value: any) => setFormData({ ...formData, type: value })}
@@ -398,16 +433,30 @@ export default function VehiclesPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant={selectedVehicleId === vehicle.id ? "default" : "ghost"}
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedVehicleId(vehicle.id)
-                                }}
-                              >
-                                {selectedVehicleId === vehicle.id ? 'Seleccionado' : 'Seleccionar'}
-                              </Button>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant={selectedVehicleId === vehicle.id ? "default" : "ghost"}
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedVehicleId(vehicle.id)
+                                  }}
+                                >
+                                  {selectedVehicleId === vehicle.id ? 'Seleccionado' : 'Seleccionar'}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDeleteId(vehicle.id)
+                                  }}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="Eliminar vehículo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -603,6 +652,29 @@ export default function VehiclesPage() {
           </DialogContent>
         </Dialog>
       </main>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este vehículo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el vehículo de forma
+              permanente. Si tiene viajes o repuestos registrados, no se podrá
+              eliminar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

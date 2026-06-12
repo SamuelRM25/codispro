@@ -187,7 +187,7 @@ export default function BodegaDashboard() {
   }
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/' })
+    await signOut({ redirectTo: '/' })
   }
 
   return (

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +9,6 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Home() {
-  const router = useRouter()
   const { data: session, status } = useSession()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,17 +18,19 @@ export default function Home() {
     setIsClient(true)
   }, [])
 
+  // Si el usuario ya está autenticado y entra a la home, redirigir al dashboard.
+  // Solo cuando el status es estable (authenticated), nunca durante loading.
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
       const role = session.user.role
-      if (role === 'BODEGA') router.replace('/dashboard/bodega')
-      else if (role === 'VEHICULO') router.replace('/dashboard/vehiculo')
-      else if (role === 'RECEPTOR') router.replace('/dashboard/receptor')
-      else router.replace('/dashboard')
+      if (role === 'BODEGA') window.location.replace('/dashboard/bodega')
+      else if (role === 'VEHICULO') window.location.replace('/dashboard/vehiculo')
+      else if (role === 'RECEPTOR') window.location.replace('/dashboard/receptor')
+      else window.location.replace('/dashboard')
     }
-  }, [status, session, router])
+  }, [status, session])
 
-  if (!isClient || status === 'loading') return null
+  if (!isClient || status === 'loading' || status === 'authenticated') return null
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,6 +46,12 @@ export default function Home() {
       if (result?.error) {
         toast.error('Código inválido')
         setLoading(false)
+        return
+      }
+
+      if (result?.ok) {
+        // Forzar recarga completa para que el middleware vea la cookie de sesión
+        window.location.href = '/dashboard'
       }
     } catch (error) {
       toast.error('Error al iniciar sesión')

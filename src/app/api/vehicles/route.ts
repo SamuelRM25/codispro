@@ -19,7 +19,7 @@ const vehicleSchema = z.object({
 export async function GET() {
   try {
     const vehicles = await db.vehicle.findMany({
-      where: { status: { not: 'retired' } },
+      where: { status: { not: 'RETIRED' } },
       include: {
         trips: {
           orderBy: { startDate: 'desc' },
@@ -48,15 +48,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = vehicleSchema.parse(body)
 
+    // Transformar lowercase del form a UPPERCASE para los enums de Prisma
     const vehicle = await db.vehicle.create({
-      data,
+      data: {
+        ...data,
+        type: data.type.toUpperCase() as 'TRUCK' | 'MACHINE' | 'VAN' | 'CAR',
+        status: data.status.toUpperCase() as
+          | 'AVAILABLE'
+          | 'IN_USE'
+          | 'MAINTENANCE'
+          | 'RETIRED',
+      },
     })
 
     return NextResponse.json(vehicle, { status: 201 })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Datos de vehículo inválidos', details: error.issues },
+        { status: 400 }
+      )
+    }
     console.error('Error creating vehicle:', error)
     return NextResponse.json(
-      { error: 'Error al crear vehículo' },
+      {
+        error: 'Error al crear vehículo',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }

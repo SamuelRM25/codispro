@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -59,15 +59,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const user = session?.user
   const role = user?.role as string
 
+  const hasRedirectedRef = useRef(false)
+
   useEffect(() => {
-    if (!hasMounted || status === 'loading') return
-    if (!session) {
+    if (!hasMounted) return
+    // Solo redirigir cuando el status es estable (unauthenticated), no durante loading
+    if (status === 'unauthenticated') {
       router.push('/')
+      hasRedirectedRef.current = true
       return
     }
-    const roleRedirect = ROLE_DASHBOARDS[role]
-    if (roleRedirect && pathname !== roleRedirect) {
-      router.replace(roleRedirect)
+    if (status === 'authenticated' && session) {
+      const roleRedirect = ROLE_DASHBOARDS[role]
+      if (roleRedirect && pathname !== roleRedirect && !hasRedirectedRef.current) {
+        hasRedirectedRef.current = true
+        router.replace(roleRedirect)
+      }
     }
   }, [session, status, hasMounted, role, pathname, router])
 
@@ -119,7 +126,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     const { signOut } = await import('next-auth/react')
-    await signOut({ callbackUrl: '/' })
+    await signOut({ redirectTo: '/' })
   }
 
   if (ROLE_DASHBOARDS[role]) {

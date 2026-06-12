@@ -33,6 +33,16 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   ArrowLeft,
   Plus,
   Package,
@@ -41,11 +51,16 @@ import {
   XCircle,
   Search,
   AlertTriangle,
+  Printer,
+  Zap,
+  CalendarClock,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 interface ShipmentItem {
   id: string
@@ -65,9 +80,18 @@ interface Shipment {
   items: ShipmentItem[]
   status: string
   notes?: string
+  departurePoint?: string
+  arrivalPoint?: string
+  authorizeName?: string
+  firma?: string
+  mode?: 'INMEDIATO' | 'PROGRAMADO'
+  scheduledAt?: string | null
+  pdfUrl?: string | null
+  printedAt?: string | null
   vehicle: { name: string; plate: string }
   driver?: { firstName: string; lastName: string }
   project?: { name: string; code: string }
+  user?: { name: string }
 }
 
 export default function ShipmentsPage() {
@@ -83,12 +107,19 @@ export default function ShipmentsPage() {
   const [isClient, setIsClient] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
 
   const [formData, setFormData] = useState({
     vehicleId: '',
     driverId: '',
     projectId: '',
+    departurePoint: '',
+    arrivalPoint: '',
+    mode: 'INMEDIATO' as 'INMEDIATO' | 'PROGRAMADO',
+    scheduledAt: '',
+    firma: '',
     items: [
       { materialName: '', sentQuantity: '', unit: 'unidad' }
     ],
@@ -190,14 +221,32 @@ export default function ShipmentsPage() {
         }),
       })
 
-      if (!response.ok) throw new Error('Error saving shipment')
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Error saving shipment')
+      }
 
-      toast.success('Envío registrado')
+      const created = await response.json()
+
+      if (formData.mode === 'INMEDIATO' && created.pdfUrl) {
+        // Abrir el PDF en una nueva pestaña
+        window.open(created.pdfUrl, '_blank')
+        toast.success('Envío registrado. Abriendo documento...')
+      } else if (formData.mode === 'PROGRAMADO') {
+        toast.success('Envío programado correctamente')
+      } else {
+        toast.success('Envío registrado')
+      }
+
+      // Optimistic update: agregar el envío al state directamente
+      // para evitar problemas de caché/red que dejen la lista vacía
+      const fullCreated = (created.items && created.vehicle) ? created : await fetch(`/api/shipments/${created.id}`).then(r => r.json()).catch(() => created)
+      setShipments((prev) => [fullCreated, ...prev])
+
       setDialogOpen(false)
       resetForm()
-      fetchShipments()
     } catch (error) {
-      toast.error('Error al registrar envío')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar envío')
     }
   }
 
@@ -229,11 +278,35 @@ export default function ShipmentsPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/shipments/${deleteId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Error al eliminar envío')
+      }
+      toast.success('Envío eliminado')
+      setDeleteId(null)
+      fetchShipments()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar envío')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       vehicleId: '',
       driverId: '',
       projectId: '',
+      departurePoint: '',
+      arrivalPoint: '',
+      mode: 'INMEDIATO',
+      scheduledAt: '',
+      firma: '',
       items: [{ materialName: '', sentQuantity: '', unit: 'unidad' }],
       notes: '',
     })
@@ -273,17 +346,21 @@ export default function ShipmentsPage() {
     setReceiveData({ ...receiveData, items: newItems })
   }
 
-  const filteredShipments = shipments.filter(
-    (s) =>
-      s.items?.some(item => item.materialName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      s.vehicle?.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.project?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredShipments = shipments.filter((s) => {
+    const term = searchTerm.toLowerCase()
+    const matMatch = s.items?.some((item) =>
+      (item.materialName ?? '').toLowerCase().includes(term)
+    )
+    const plateMatch = (s.vehicle?.plate ?? '').toLowerCase().includes(term)
+    const projectMatch = (s.project?.name ?? '').toLowerCase().includes(term)
+    return matMatch || plateMatch || projectMatch
+  })
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       PENDING: 'bg-yellow-500',
-      SENT: 'bg-blue-500',
+      VERIFIED: 'bg-blue-500',
+      IN_TRANSIT: 'bg-blue-600',
       RECEIVED: 'bg-green-500',
       DISCREPANCY: 'bg-red-500',
     }
@@ -335,13 +412,36 @@ export default function ShipmentsPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label htmlFor="departurePoint">Punto de Salida *</Label>
+                    <Input
+                      id="departurePoint"
+                      value={formData.departurePoint}
+                      onChange={(e) => setFormData({ ...formData, departurePoint: e.target.value })}
+                      placeholder="Ej: Bodega Central, Chiantla"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="arrivalPoint">Punto de Llegada *</Label>
+                    <Input
+                      id="arrivalPoint"
+                      value={formData.arrivalPoint}
+                      onChange={(e) => setFormData({ ...formData, arrivalPoint: e.target.value })}
+                      placeholder="Ej: Proyecto OFC, Aldea X"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="vehicleId">Vehículo *</Label>
                     <Select
                       value={formData.vehicleId}
                       onValueChange={(value) => setFormData({ ...formData, vehicleId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Seleccionar vehículo" />
                       </SelectTrigger>
                       <SelectContent>
                         {vehicles.map((vehicle) => (
@@ -359,7 +459,7 @@ export default function ShipmentsPage() {
                       onValueChange={(value) => setFormData({ ...formData, driverId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Seleccionar conductor" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">Sin asignar</SelectItem>
@@ -371,6 +471,64 @@ export default function ShipmentsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="projectId">Proyecto</Label>
+                  <Select
+                    value={formData.projectId}
+                    onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar proyecto (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin proyecto</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name} ({project.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <Label className="text-sm font-semibold">Tipo de Envío</Label>
+                  <RadioGroup
+                    value={formData.mode}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, mode: value as 'INMEDIATO' | 'PROGRAMADO' })
+                    }
+                    className="flex flex-col sm:flex-row gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="INMEDIATO" id="mode-inmediato" />
+                      <Label htmlFor="mode-inmediato" className="flex items-center gap-2 cursor-pointer font-normal">
+                        <Zap className="w-4 h-4 text-yellow-500" />
+                        Inmediato (imprime ahora)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="PROGRAMADO" id="mode-programado" />
+                      <Label htmlFor="mode-programado" className="flex items-center gap-2 cursor-pointer font-normal">
+                        <CalendarClock className="w-4 h-4 text-blue-500" />
+                        Programado (queda pendiente)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  {formData.mode === 'PROGRAMADO' && (
+                    <div className="space-y-2 pt-2">
+                      <Label htmlFor="scheduledAt">Fecha Programada *</Label>
+                      <Input
+                        id="scheduledAt"
+                        type="date"
+                        value={formData.scheduledAt}
+                        onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
@@ -443,6 +601,29 @@ export default function ShipmentsPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="firma">Firma (Nombre y Apellido de quien firma)</Label>
+                  <Input
+                    id="firma"
+                    value={formData.firma}
+                    onChange={(e) => setFormData({ ...formData, firma: e.target.value })}
+                    placeholder="Ej: Juan Pérez"
+                    required
+                  />
+                </div>
+
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-700 dark:text-blue-300 font-semibold">Autoriza:</span>
+                    <span className="text-blue-900 dark:text-blue-100">
+                      {user?.name ?? <span className="italic text-slate-500">Cargando sesión...</span>}
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+                    El usuario activo al guardar queda registrado como autorizante.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="notes">Notas Generales</Label>
                   <Textarea
                     id="notes"
@@ -495,7 +676,7 @@ export default function ShipmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {shipments.filter((s) => s.status === 'SENT').length}
+                {shipments.filter((s) => s.status === 'VERIFIED' || s.status === 'IN_TRANSIT').length}
               </div>
             </CardContent>
           </Card>
@@ -533,6 +714,7 @@ export default function ShipmentsPage() {
                       <TableHead>Materiales</TableHead>
                       <TableHead>Vehículo</TableHead>
                       <TableHead>Proyecto</TableHead>
+                      <TableHead>Modo</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -541,7 +723,13 @@ export default function ShipmentsPage() {
                     {filteredShipments.map((shipment) => (
                       <TableRow key={shipment.id}>
                         <TableCell>
-                          {format(new Date(shipment.shipmentDate), 'dd MMM yyyy', { locale: es })}
+                          <div>{format(new Date(shipment.shipmentDate), 'dd MMM yyyy', { locale: es })}</div>
+                          {shipment.scheduledAt && (
+                            <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+                              <CalendarClock className="w-3 h-3" />
+                              Prog: {format(new Date(shipment.scheduledAt), 'dd/MM/yyyy', { locale: es })}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
@@ -568,6 +756,12 @@ export default function ShipmentsPage() {
                                 {shipment.driver.firstName} {shipment.driver.lastName}
                               </div>
                             )}
+                            {shipment.authorizeName && (
+                              <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <Check className="w-3 h-3 text-blue-500" />
+                                Autoriza: {shipment.authorizeName}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -583,17 +777,56 @@ export default function ShipmentsPage() {
                           ) : '-'}
                         </TableCell>
                         <TableCell>
+                          {shipment.mode === 'PROGRAMADO' ? (
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/30">
+                              <CalendarClock className="w-3 h-3 mr-1" />
+                              Programado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+                              <Zap className="w-3 h-3 mr-1" />
+                              Inmediato
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge className={getStatusBadge(shipment.status)}>
                             {shipment.status === 'PENDING'
                               ? 'Pendiente'
-                              : shipment.status === 'SENT'
-                                ? 'Enviado'
-                                : shipment.status === 'RECEIVED'
-                                  ? 'Recibido'
-                                  : 'Discrepancia'}
+                              : shipment.status === 'VERIFIED'
+                                ? 'Verificado'
+                                : shipment.status === 'IN_TRANSIT'
+                                  ? 'En tránsito'
+                                  : shipment.status === 'RECEIVED'
+                                    ? 'Recibido'
+                                    : shipment.status === 'DISCREPANCY'
+                                      ? 'Discrepancia'
+                                      : shipment.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {shipment.pdfUrl && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(shipment.pdfUrl!, '_blank')}
+                                className="gap-1"
+                                title="Abrir documento PDF"
+                              >
+                                <Printer className="w-4 h-4" />
+                                Imprimir
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(shipment.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Eliminar envío"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           {shipment.status !== 'RECEIVED' && shipment.status !== 'DISCREPANCY' && (
                             <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
                               <DialogTrigger asChild>
@@ -691,6 +924,7 @@ export default function ShipmentsPage() {
                               </DialogContent>
                             </Dialog>
                           )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -701,6 +935,28 @@ export default function ShipmentsPage() {
           </CardContent>
         </Card>
       </main>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este envío?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el envío, sus materiales
+              y el documento PDF generado. El vehículo, conductor y proyecto no se verán afectados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div >
   )
 }
