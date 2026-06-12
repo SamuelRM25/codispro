@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,18 +12,19 @@ import { Camera, Package, CheckCircle, AlertTriangle, Truck, Clock, LogOut } fro
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-const STATUS_STEPS = ['pending', 'verified', 'in_transit', 'received']
+const STATUS_STEPS = ['PENDING', 'VERIFIED', 'IN_TRANSIT', 'RECEIVED']
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Generado',
-  verified: 'Verificado',
-  in_transit: 'En Ruta',
-  received: 'Entregado',
-  discrepancy: 'Discrepancia',
+  PENDING: 'Generado',
+  VERIFIED: 'Verificado',
+  IN_TRANSIT: 'En Ruta',
+  RECEIVED: 'Entregado',
+  DISCREPANCY: 'Discrepancia',
 }
 
 export default function ReceptorDashboard() {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { data: session } = useSession()
+  const user = session?.user
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -41,8 +42,7 @@ export default function ReceptorDashboard() {
     try {
       const res = await fetch('/api/shipments')
       const data = await res.json()
-      // Show all in-transit and recent received
-      setShipments(data.filter((s: any) => s.status !== 'discrepancy' || s.status !== 'received'))
+      setShipments(data.filter((s: any) => s.status !== 'DISCREPANCY' || s.status !== 'RECEIVED'))
     } catch { toast.error('Error al cargar envíos') }
     finally { setLoading(false) }
   }, [])
@@ -107,7 +107,7 @@ export default function ReceptorDashboard() {
         body: JSON.stringify({ action: 'receive', photo: capturedPhoto, items }),
       })
       const updated = await res.json()
-      if (updated.status === 'discrepancy') {
+      if (updated.status === 'DISCREPANCY') {
         toast.error('⚠️ Recepción con discrepancia en cantidades. El admin será notificado.')
       } else {
         toast.success('✅ Recepción confirmada exitosamente')
@@ -135,7 +135,7 @@ export default function ReceptorDashboard() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => { logout(); router.push('/') }}
+            onClick={() => { signOut(); router.push('/') }}
             className="text-slate-400 hover:text-white hover:bg-red-500/20 rounded-xl"
           >
             <LogOut className="w-5 h-5" />
@@ -259,7 +259,7 @@ export default function ReceptorDashboard() {
             const currentStep = STATUS_STEPS.indexOf(shipment.status)
             return (
               <div key={shipment.id} className="bg-[#1e293b] rounded-3xl overflow-hidden shadow-xl">
-                <div className={`h-2 ${shipment.status === 'received' ? 'bg-emerald-500' : shipment.status === 'in_transit' ? 'bg-amber-500' : shipment.status === 'discrepancy' ? 'bg-red-500' : 'bg-slate-600'}`} />
+                <div className={`h-2 ${shipment.status === 'RECEIVED' ? 'bg-emerald-500' : shipment.status === 'IN_TRANSIT' ? 'bg-amber-500' : shipment.status === 'DISCREPANCY' ? 'bg-red-500' : 'bg-slate-600'}`} />
                 <div className="p-6 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
@@ -270,7 +270,7 @@ export default function ReceptorDashboard() {
                       <p className="text-sm text-slate-400 mt-1">{shipment.project?.name || 'Sin proyecto'}</p>
                       <p className="text-xs text-slate-600">{format(new Date(shipment.shipmentDate), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                     </div>
-                    <Badge className={`font-bold uppercase text-xs ${shipment.status === 'received' ? 'bg-emerald-500' : shipment.status === 'in_transit' ? 'bg-amber-500' : shipment.status === 'discrepancy' ? 'bg-red-500 text-white' : 'bg-slate-600'} text-white`}>
+                    <Badge className={`font-bold uppercase text-xs ${shipment.status === 'RECEIVED' ? 'bg-emerald-500' : shipment.status === 'IN_TRANSIT' ? 'bg-amber-500' : shipment.status === 'DISCREPANCY' ? 'bg-red-500 text-white' : 'bg-slate-600'} text-white`}>
                       {STATUS_LABELS[shipment.status]}
                     </Badge>
                   </div>
@@ -306,7 +306,7 @@ export default function ReceptorDashboard() {
                   )}
 
                   {/* Action */}
-                  {shipment.status === 'in_transit' && (
+                  {shipment.status === 'IN_TRANSIT' && (
                     <Button
                       onClick={() => startReceiving(shipment)}
                       className="w-full bg-emerald-500 hover:bg-emerald-400 font-black rounded-xl py-4 text-base shadow-lg shadow-emerald-500/30"
@@ -315,7 +315,7 @@ export default function ReceptorDashboard() {
                     </Button>
                   )}
 
-                  {shipment.status === 'received' && shipment.arrivalPhoto && (
+                  {shipment.status === 'RECEIVED' && shipment.arrivalPhoto && (
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Foto de Recepción</p>
                       <img src={shipment.arrivalPhoto} alt="Recepción" className="w-full h-32 object-cover rounded-xl" />

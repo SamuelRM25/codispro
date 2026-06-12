@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,9 +10,11 @@ import { useEffect, useState } from 'react'
 
 export default function LocationPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
   const [trackingEnabled, setTrackingEnabled] = useState(true)
   const [isClient, setIsClient] = useState(false)
+
+  const user = session?.user
 
   useEffect(() => {
     setIsClient(true)
@@ -35,9 +37,9 @@ export default function LocationPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Ubicación en Tiempo Real</h1>
+            <h1 className="text-2xl font-bold">Ubicacion en Tiempo Real</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Rastreo GPS de camiones y vehículos
+              Rastreo GPS de camiones y vehiculos
             </p>
           </div>
         </div>
@@ -52,10 +54,10 @@ export default function LocationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="w-5 h-5" />
-                  Mi Ubicación
+                  Mi Ubicacion
                 </CardTitle>
                 <CardDescription>
-                  Tu ubicación se rastrea en tiempo real cuando estás activo
+                  Tu ubicacion se rastrea en tiempo real cuando estas activo
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -98,11 +100,11 @@ export default function LocationPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <Truck className="w-4 h-4" />
-                    <span>Vehículo: Asignado en ruta</span>
+                    <span>Vehiculo: Asignado en ruta</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <Clock className="w-4 h-4" />
-                    <span>Última actualización: hace 1 minuto</span>
+                    <span>Ultima actualizacion: hace 1 minuto</span>
                   </div>
                 </div>
               </CardContent>
@@ -112,14 +114,14 @@ export default function LocationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <MapPin className="w-5 h-5" />
-                  Información
+                  Informacion
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <p>• El rastreo funciona en segundo plano</p>
-                <p>• Tu ubicación se actualiza automáticamente</p>
-                <p>• Los administradores pueden ver tu ubicación</p>
-                <p>• Los datos se mantienen por 7 días</p>
+                <p>- El rastreo funciona en segundo plano</p>
+                <p>- Tu ubicacion se actualiza automaticamente</p>
+                <p>- Los administradores pueden ver tu ubicacion</p>
+                <p>- Los datos se mantienen por 7 dias</p>
               </CardContent>
             </Card>
           </div>

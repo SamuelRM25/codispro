@@ -48,7 +48,7 @@ import {
   Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import ImageUpload from '@/components/image-upload'
@@ -80,7 +80,8 @@ interface ToolLoan {
 
 export default function ToolsPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
+  const user = session?.user
   const [tools, setTools] = useState<Tool[]>([])
   const [loans, setLoans] = useState<ToolLoan[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,7 +100,7 @@ export default function ToolsPage() {
     photo: '',
     category: '',
     location: '',
-    status: 'available',
+    status: 'AVAILABLE',
   })
 
 
@@ -245,7 +246,7 @@ export default function ToolsPage() {
       photo: '',
       category: '',
       location: '',
-      status: 'available',
+      status: 'AVAILABLE',
     })
   }
 
@@ -258,10 +259,10 @@ export default function ToolsPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      available: 'bg-green-500',
-      in_use: 'bg-blue-500',
-      maintenance: 'bg-orange-500',
-      retired: 'bg-slate-500',
+      AVAILABLE: 'bg-green-500',
+      IN_USE: 'bg-blue-500',
+      MAINTENANCE: 'bg-orange-500',
+      RETIRED: 'bg-slate-500',
     }
     return variants[status] || 'bg-slate-500'
   }
@@ -387,10 +388,10 @@ export default function ToolsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="available">Disponible</SelectItem>
-                            <SelectItem value="in_use">En Uso</SelectItem>
-                            <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                            <SelectItem value="retired">Retirado</SelectItem>
+                            <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                            <SelectItem value="IN_USE">En Uso</SelectItem>
+                            <SelectItem value="MAINTENANCE">Mantenimiento</SelectItem>
+                            <SelectItem value="RETIRED">Retirado</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -436,7 +437,7 @@ export default function ToolsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">
-                    {tools.filter((t) => t.status === 'available').length}
+                    {tools.filter((t) => t.status === 'AVAILABLE').length}
                   </div>
                 </CardContent>
               </Card>
@@ -448,7 +449,7 @@ export default function ToolsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600">
-                    {tools.filter((t) => t.status === 'in_use').length}
+                    {tools.filter((t) => t.status === 'IN_USE').length}
                   </div>
                 </CardContent>
               </Card>
@@ -460,7 +461,7 @@ export default function ToolsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">
-                    {tools.filter((t) => t.status === 'maintenance').length}
+                    {tools.filter((t) => t.status === 'MAINTENANCE').length}
                   </div>
                 </CardContent>
               </Card>
@@ -504,11 +505,11 @@ export default function ToolsPage() {
                             <TableCell>{tool.location || '-'}</TableCell>
                             <TableCell>
                               <Badge className={getStatusBadge(tool.status)}>
-                                {tool.status === 'available'
+                                {tool.status === 'AVAILABLE'
                                   ? 'Disponible'
-                                  : tool.status === 'in_use'
+                                  : tool.status === 'IN_USE'
                                     ? 'En Uso'
-                                    : tool.status === 'maintenance'
+                                    : tool.status === 'MAINTENANCE'
                                       ? 'Mantenimiento'
                                       : 'Retirado'}
                               </Badge>
@@ -541,7 +542,7 @@ export default function ToolsPage() {
                                     setEditingTool(tool)
                                     setLoanDialogOpen(true)
                                   }}
-                                  disabled={tool.status !== 'available'}
+                                  disabled={tool.status !== 'AVAILABLE'}
                                 >
                                   <ArrowRightLeft className="w-4 h-4" />
                                 </Button>

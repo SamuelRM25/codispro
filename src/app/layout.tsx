@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import PWAInstall from "@/components/pwa-install";
+import { Providers } from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,9 +61,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground relative overflow-x-hidden min-h-screen`}
       >
-        {children}
-        <Toaster />
-        <PWAInstall />
+        <Providers>
+          {children}
+          <Toaster />
+          <PWAInstall />
+        </Providers>
       </body>
     </html>
   );

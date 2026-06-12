@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import {
   LayoutDashboard,
@@ -36,46 +36,41 @@ const ADMIN_MENU = [
   { href: '/dashboard/calendar', label: 'Calendario', icon: CalendarIcon },
 ]
 
-// Role-restricted dashboards use their own layout (no sidebar)
 const ROLE_DASHBOARDS: Record<string, string> = {
-  bodega: '/dashboard/bodega',
-  vehiculo: '/dashboard/vehiculo',
-  receptor: '/dashboard/receptor',
+  BODEGA: '/dashboard/bodega',
+  VEHICULO: '/dashboard/vehiculo',
+  RECEPTOR: '/dashboard/receptor',
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, user, _hasHydrated, logout } = useAuthStore()
+  const { data: session, status } = useSession()
   const [hasMounted, setHasMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Notifications state
   const [notifications, setNotifications] = useState<any[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [selectedNotif, setSelectedNotif] = useState<any | null>(null)
 
   useEffect(() => { setHasMounted(true) }, [])
 
-  // Role-based redirect
+  const user = session?.user
+  const role = user?.role as string
+
   useEffect(() => {
-    if (!hasMounted || !_hasHydrated || !isAuthenticated || !user) return
-    const roleRedirect = ROLE_DASHBOARDS[user.role]
+    if (!hasMounted || status === 'loading') return
+    if (!session) {
+      router.push('/')
+      return
+    }
+    const roleRedirect = ROLE_DASHBOARDS[role]
     if (roleRedirect && pathname !== roleRedirect) {
       router.replace(roleRedirect)
     }
-  }, [isAuthenticated, _hasHydrated, hasMounted, user, pathname, router])
+  }, [session, status, hasMounted, role, pathname, router])
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (hasMounted && _hasHydrated && !isAuthenticated) {
-      router.push('/')
-    }
-  }, [isAuthenticated, _hasHydrated, hasMounted, router])
-
-  // Admin-only: poll for tool loan notifications every 15s
   const fetchNotifications = useCallback(async () => {
-    if (!user || user.role !== 'admin') return
+    if (!user || role !== 'ADMIN') return
     try {
       const res = await fetch('/api/tool-loans/notifications')
       const data = await res.json()
@@ -84,20 +79,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setNotifications(data)
         if (data.length > prev) {
           const newest = data[0]
-          toast.info(`🔔 Nueva herramienta sacada: "${newest.tool?.name}" — ${newest.worker ? newest.worker.firstName + ' ' + newest.worker.lastName : 'Sin asignar'}`, {
+          toast.info(`Nueva herramienta sacada: "${newest.tool?.name}" — ${newest.worker ? newest.worker.firstName + ' ' + newest.worker.lastName : 'Sin asignar'}`, {
             duration: 6000,
           })
         }
       }
     } catch { }
-  }, [user, notifications.length])
+  }, [user, role, notifications.length])
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') return
+    if (!user || role !== 'ADMIN') return
     fetchNotifications()
     const interval = setInterval(fetchNotifications, 15000)
     return () => clearInterval(interval)
-  }, [fetchNotifications, user])
+  }, [fetchNotifications, user, role])
 
   const markAllRead = async () => {
     await fetch('/api/tool-loans/notifications', {
@@ -118,12 +113,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
-  if (!hasMounted || !_hasHydrated || !isAuthenticated || !user) return null
+  if (!hasMounted || status === 'loading' || !session) return null
 
-  const handleLogout = () => { logout(); router.push('/') }
+  const handleLogout = async () => {
+    const { signOut } = await import('next-auth/react')
+    await signOut({ callbackUrl: '/' })
+  }
 
-  // Restricted roles render their own layout (no sidebar)
-  if (ROLE_DASHBOARDS[user.role]) {
+  if (ROLE_DASHBOARDS[role]) {
     return <>{children}</>
   }
 
@@ -133,7 +130,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#1e293b] text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 shrink-0 items-center justify-center border-b border-slate-700/50 bg-[#0f172a] px-6">
           <div className="flex items-center gap-3">
@@ -146,7 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex flex-1 flex-col overflow-y-auto py-4">
           <div className="px-6 mb-4 mt-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menú Principal</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menu Principal</p>
           </div>
           <nav className="flex-1 space-y-1 px-3">
             {ADMIN_MENU.map((item) => {
@@ -169,21 +165,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="border-t border-slate-700/50 p-4">
           <div className="flex items-center gap-3 px-3 py-2 mb-2">
             <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold text-lg">
-              {user.name.charAt(0).toUpperCase()}
+              {user.name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-white truncate max-w-[120px]">{user.name}</span>
-              <span className="text-xs text-slate-400 capitalize">{user.role}</span>
+              <span className="text-xs text-slate-400 capitalize">{role}</span>
             </div>
           </div>
           <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-slate-300 hover:bg-red-500/10 hover:text-red-400 rounded-xl">
             <LogOut className="mr-3 h-5 w-5" />
-            Cerrar Sesión
+            Cerrar Sesion
           </Button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white dark:bg-[#0f172a] px-6 shadow-sm z-30">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
@@ -193,8 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex flex-1 items-center justify-between lg:justify-end">
             <div className="lg:hidden font-bold">CODISPRO</div>
             <div className="flex items-center gap-4">
-              {/* Notification bell — admin only */}
-              {user.role === 'admin' && (
+              {role === 'ADMIN' && (
                 <div className="relative">
                   <Button
                     variant="ghost"
@@ -210,7 +204,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     )}
                   </Button>
 
-                  {/* Notification dropdown */}
                   {notifOpen && (
                     <div className="absolute right-0 top-12 w-96 bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
                       <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
@@ -266,12 +259,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        {/* Notification detail modal */}
         {selectedNotif && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setSelectedNotif(null)}>
             <div className="bg-white dark:bg-[#1e293b] rounded-3xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h3 className="font-black text-lg uppercase">🔔 Herramienta Sacada</h3>
+                <h3 className="font-black text-lg uppercase">Herramienta Sacada</h3>
                 <button onClick={() => setSelectedNotif(null)}><X className="w-5 h-5 text-slate-400" /></button>
               </div>
               {selectedNotif.photo && (
@@ -283,7 +275,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="font-bold">{selectedNotif.tool?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 text-sm">Categoría</span>
+                  <span className="text-slate-400 text-sm">Categoria</span>
                   <span className="font-bold">{selectedNotif.tool?.category || '—'}</span>
                 </div>
                 <div className="flex justify-between">
@@ -299,7 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="w-full rounded-xl"
                 onClick={() => { markOneRead(selectedNotif.id); setSelectedNotif(null) }}
               >
-                ✓ Marcar como visto
+                Marcar como visto
               </Button>
             </div>
           </div>

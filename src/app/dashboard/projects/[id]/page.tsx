@@ -39,12 +39,13 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 
 export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
+  const user = session?.user
   const [project, setProject] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
@@ -360,10 +361,10 @@ export default function ProjectDetailPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="supervisor">Supervisor</SelectItem>
-                            <SelectItem value="obrero">Obrero</SelectItem>
-                            <SelectItem value="maestro">Maestro</SelectItem>
-                            <SelectItem value="ayudante">Ayudante</SelectItem>
+                            <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                            <SelectItem value="OBRERO">Obrero</SelectItem>
+                            <SelectItem value="MAESTRO">Maestro</SelectItem>
+                            <SelectItem value="AYUDANTE">Ayudante</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -515,16 +516,16 @@ export default function ProjectDetailPage() {
                               <Badge
                                 variant="outline"
                                 className={
-                                  shipment.status === 'received'
+                                  shipment.status === 'RECEIVED'
                                     ? 'bg-green-500 text-white'
-                                    : shipment.status === 'discrepancy'
+                                    : shipment.status === 'DISCREPANCY'
                                       ? 'bg-red-500 text-white'
                                       : 'bg-blue-500 text-white'
                                 }
                               >
-                                {shipment.status === 'received'
+                                {shipment.status === 'RECEIVED'
                                   ? 'Recibido'
-                                  : shipment.status === 'discrepancy'
+                                  : shipment.status === 'DISCREPANCY'
                                     ? 'Discrepancia'
                                     : 'Enviado'}
                               </Badge>
@@ -568,15 +569,15 @@ export default function ProjectDetailPage() {
                               {format(new Date(tx.date), 'dd MMM yyyy', { locale: es })}
                             </td>
                             <td className="p-3">
-                              <Badge variant={tx.type === 'income' ? 'default' : 'destructive'}>
-                                {tx.type === 'income' ? 'Ingreso' : 'Egreso'}
+                              <Badge variant={tx.type === 'INCOME' ? 'default' : 'destructive'}>
+                                {tx.type === 'INCOME' ? 'Ingreso' : 'Egreso'}
                               </Badge>
                             </td>
                             <td className="p-3">{tx.category || '-'}</td>
                             <td className="p-3">{tx.description}</td>
-                            <td className={`p-3 font-medium ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
+                            <td className={`p-3 font-medium ${tx.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
                               }`}>
-                              {tx.type === 'income' ? '+' : '-'}Q{tx.amount.toFixed(2)}
+                              {tx.type === 'INCOME' ? '+' : '-'}Q{tx.amount.toFixed(2)}
                             </td>
                             <td className="p-3">{tx.user.name}</td>
                           </tr>

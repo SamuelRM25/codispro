@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { signIn, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { HardHat, Loader2, ArrowRight } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Home() {
   const router = useRouter()
-  const { isAuthenticated, login, _hasHydrated } = useAuthStore()
+  const { data: session, status } = useSession()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
@@ -20,31 +20,35 @@ export default function Home() {
     setIsClient(true)
   }, [])
 
-  if (!isClient) return null
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const role = session.user.role
+      if (role === 'BODEGA') router.replace('/dashboard/bodega')
+      else if (role === 'VEHICULO') router.replace('/dashboard/vehiculo')
+      else if (role === 'RECEPTOR') router.replace('/dashboard/receptor')
+      else router.replace('/dashboard')
+    }
+  }, [status, session, router])
+
+  if (!isClient || status === 'loading') return null
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (!code.trim()) return
 
+    setLoading(true)
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+      const result = await signIn('credentials', {
+        code: code.trim(),
+        redirect: false,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al iniciar sesión')
+      if (result?.error) {
+        toast.error('Código inválido')
+        setLoading(false)
       }
-
-      login(data)
-      toast.success('Bienvenido, ' + data.name)
-      router.push('/dashboard')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al iniciar sesión')
-    } finally {
+      toast.error('Error al iniciar sesión')
       setLoading(false)
     }
   }
@@ -69,63 +73,39 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent className="pb-10 px-8">
-          {isAuthenticated && _hasHydrated ? (
-            <div className="space-y-4 pt-4">
-              <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Sesión activa como</p>
-                <p className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-tight">{useAuthStore.getState().user?.name}</p>
+          <form onSubmit={handleLogin} className="space-y-8 pt-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <label htmlFor="code" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Código de Acceso
+                </label>
+                <span className="h-px flex-1 bg-slate-200 dark:bg-white/10 ml-4" />
               </div>
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="w-full gap-3 h-14 text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all rounded-2xl bg-primary hover:bg-primary/90"
-                size="lg"
-              >
-                Ingresar al Sistema
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => useAuthStore.getState().logout()}
-                className="w-full h-12 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-destructive transition-colors"
-              >
-                Cerrar Sesión
-              </Button>
+              <div className="group relative">
+                <Input
+                  id="code"
+                  type="password"
+                  placeholder="••••••"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="h-20 text-center text-4xl font-black tracking-[0.6em] bg-white/40 dark:bg-black/20 border-white/20 rounded-3xl focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                  maxLength={10}
+                  autoFocus
+                />
+              </div>
             </div>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-8 pt-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <label htmlFor="code" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Código de Acceso
-                  </label>
-                  <span className="h-px flex-1 bg-slate-200 dark:bg-white/10 ml-4" />
-                </div>
-                <div className="group relative">
-                  <Input
-                    id="code"
-                    type="password"
-                    placeholder="••••••"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="h-20 text-center text-4xl font-black tracking-[0.6em] bg-white/40 dark:bg-black/20 border-white/20 rounded-3xl focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800"
-                    maxLength={10}
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-16 text-base font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/25 hover:shadow-primary/40 transition-all rounded-3xl bg-primary hover:bg-primary/90"
-                disabled={loading || !code.trim()}
-              >
-                {loading ? (
-                  <Loader2 className="h-7 w-7 animate-spin" />
-                ) : (
-                  'Validar Acceso'
-                )}
-              </Button>
-            </form>
-          )}
+            <Button
+              type="submit"
+              className="w-full h-16 text-base font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/25 hover:shadow-primary/40 transition-all rounded-3xl bg-primary hover:bg-primary/90"
+              disabled={loading || !code.trim()}
+            >
+              {loading ? (
+                <Loader2 className="h-7 w-7 animate-spin" />
+              ) : (
+                'Validar Acceso'
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

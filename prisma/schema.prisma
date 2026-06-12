@@ -9,17 +9,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ ENUMS ============
+enum UserRole {
+  ADMIN
+  MANAGER
+  WORKER
+  BODEGA
+  VEHICULO
+  RECEPTOR
+}
+
+enum ToolStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+enum VehicleType {
+  TRUCK
+  MACHINE
+  VAN
+  CAR
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+enum FuelType {
+  GASOLINE
+  DIESEL
+  ELECTRIC
+  HYBRID
+}
+
+enum ShipmentStatus {
+  PENDING
+  VERIFIED
+  IN_TRANSIT
+  RECEIVED
+  DISCREPANCY
+}
+
+enum PettyCashType {
+  INCOME
+  EXPENSE
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceType {
+  ISSUED
+  RECEIVED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+enum AccessStatus {
+  SUCCESS
+  DENIED
+}
+
 // ============ AUTENTICACIÓN ============
 model User {
   id        String   @id @default(cuid())
-  code      String   @unique // Código de acceso único
+  code      String   @unique
   name      String
-  role      String   @default("user") // admin, manager, worker
+  role      UserRole @default(WORKER)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
   toolLoans      ToolLoan[]
   vehicleTrips   VehicleTrip[]
   shipments      Shipment[]
@@ -28,6 +102,10 @@ model User {
   pettyCash      PettyCash[]
   invoices       Invoice[]
   accessLogs     AccessLog[]
+
+  @@index([code])
+  @@index([role])
+  @@index([isActive])
 }
 
 // ============ TRABAJADORES ============
@@ -35,104 +113,122 @@ model Worker {
   id              String    @id @default(cuid())
   firstName       String
   lastName        String
-  dpi             String?   // DPI (documento de identidad)
-  photo           String?   // URL de la foto
-  birthDate       DateTime? // Fecha de nacimiento
+  dpi             String?   @unique
+  photo           String?
+  birthDate       DateTime?
   phone           String?
   address         String?
-  position        String?   // Cargo/Posición
-  hourlyRate      Float?    // Tarifa por hora
+  position        String?
+  hourlyRate      Decimal   @db.Decimal(10,2)
   isActive        Boolean   @default(true)
-  hikvisionId     String?   @unique // ID en base de datos Terminal HikVision
+  hikvisionId     String?   @unique
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Relaciones
   toolLoans       ToolLoan[]
   shipments       Shipment[]
+  vehicleTrips    VehicleTrip[]
   projectStaff    ProjectStaff[]
   payrollEntries  PayrollEntry[]
   accessLogs      AccessLog[]
+
+  @@index([dpi])
+  @@index([hikvisionId])
+  @@index([isActive])
 }
 
 // ============ HERRAMIENTAS ============
 model Tool {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String?
-  barcode     String?   @unique // Código de barras
-  photo       String?   // URL de la foto
+  barcode     String?    @unique
+  photo       String?
   category    String?
-  status      String    @default("available") // available, in_use, maintenance, retired
-  location    String?   // Ubicación en bodega
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status      ToolStatus @default(AVAILABLE)
+  location    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  // Relaciones
   loans       ToolLoan[]
+
+  @@index([barcode])
+  @@index([status])
+  @@index([category])
 }
 
+// ============ PRÉSTAMO DE HERRAMIENTAS ============
 model ToolLoan {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   toolId     String
   userId     String
   workerId   String?
-  loanDate   DateTime @default(now())
+  loanDate   DateTime  @default(now())
   returnDate DateTime?
   notes      String?
-  photo      String?  // URL foto tomada al sacar la herramienta
-  notified   Boolean  @default(false) // si el admin ya vio la notificación
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  photo      String?
+  notified   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  // Relaciones
   tool       Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id])
-  worker     Worker?  @relation(fields: [workerId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  worker     Worker?  @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@index([toolId])
+  @@index([userId])
+  @@index([workerId])
+  @@index([loanDate])
 }
 
 // ============ VEHÍCULOS ============
 model Vehicle {
-  id          String         @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
-  plate       String         @unique // Placa del vehículo
-  type        String         // truck, machine, van, car
+  plate       String        @unique
+  type        VehicleType
   brand       String?
   model       String?
   year        Int?
   color       String?
-  photo       String?       // URL de la foto
-  status      String         @default("available") // available, in_use, maintenance, retired
-  mileage     Float?
-  fuelType    String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  photo       String?
+  status      VehicleStatus @default(AVAILABLE)
+  mileage     Decimal?      @db.Decimal(12,2)
+  fuelType    FuelType?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  // Relaciones
   trips       VehicleTrip[]
   spareParts  VehicleSparePart[]
   shipments   Shipment[]
+
+  @@index([plate])
+  @@index([type])
+  @@index([status])
 }
 
+// ============ REFACCIONES ============
 model VehicleSparePart {
   id          String   @id @default(cuid())
   vehicleId   String
   name        String
   description String?
   quantity    Int
-  unitPrice   Float?
+  unitPrice   Decimal  @db.Decimal(10,2)
   purchaseDate DateTime?
-  invoicePhoto String? // URL de la foto del comprobante/factura
+  invoicePhoto String?
   supplier    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relaciones
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
 }
 
+// ============ VIAJES ============
 model VehicleTrip {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   vehicleId   String
   driverId    String?
   userId      String
@@ -140,160 +236,188 @@ model VehicleTrip {
   endDate     DateTime?
   origin      String?
   destination String?
-  distance    Float?   // kilómetros
+  distance    Decimal?   @db.Decimal(10,2)
   purpose     String?
   notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  // Relaciones
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver      Worker?   @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([userId])
+  @@index([startDate])
 }
 
 // ============ ENVÍOS ============
 model Shipment {
-  id              String   @id @default(cuid())
+  id              String         @id @default(cuid())
   vehicleId       String
   driverId        String?
-  receiverId      String?  // ID del User con rol receptor asignado
+  receiverId      String?
   projectId       String?
   userId          String
-  shipmentDate    DateTime @default(now())
-  
-  // Legacy fields (optional)
+  shipmentDate    DateTime       @default(now())
+
   materialName    String?
-  sentQuantity    Float?
-  receivedQuantity Float?
+  sentQuantity    Decimal?       @db.Decimal(12,3)
+  receivedQuantity Decimal?      @db.Decimal(12,3)
   receivedDate    DateTime?
-  
-  // Tracking fields
-  departurePhoto  String?   // foto tomada al salir
-  departureTime   DateTime? // hora de inicio de ruta
-  arrivalPhoto    String?   // foto tomada al llegar / recibir
-  arrivalTime     DateTime? // hora de entrega
-  receivedNotes   String?   // notas del receptor
 
-  status          String   @default("pending") // pending, verified, in_transit, received, discrepancy
+  departurePhoto  String?
+  departureTime   DateTime?
+  arrivalPhoto    String?
+  arrivalTime     DateTime?
+  receivedNotes   String?
+
+  status          ShipmentStatus @default(PENDING)
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  // Relaciones
   items           ShipmentItem[]
-  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
-  driver          Worker?  @relation(fields: [driverId], references: [id])
-  project         Project? @relation(fields: [projectId], references: [id])
-  user            User     @relation(fields: [userId], references: [id])
+  vehicle         Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver          Worker?        @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  project         Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+  @@index([shipmentDate])
 }
 
 model ShipmentItem {
   id               String   @id @default(cuid())
   shipmentId       String
   materialName     String
-  sentQuantity     Float
-  unit             String   @default("unidad") // m3, kg, lbs, ton, unidad, etc.
-  receivedQuantity Float?
+  sentQuantity     Decimal  @db.Decimal(12,3)
+  unit             String   @default("unidad")
+  receivedQuantity Decimal? @db.Decimal(12,3)
   receivedNotes    String?
 
   shipment         Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
 }
 
 // ============ CAJA CHICA ============
 model PettyCash {
-  id          String   @id @default(cuid())
-  type        String   // income, expense
-  amount      Float
-  category    String?  // fuel, supplies, food, etc.
+  id          String        @id @default(cuid())
+  type        PettyCashType
+  amount      Decimal       @db.Decimal(16,2)
+  category    String?
   description String
-  date        DateTime @default(now())
+  date        DateTime      @default(now())
   userId      String
   projectId   String?
-  receipt     String?  // URL del recibo/factura
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  receipt     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  // Relaciones
-  user        User     @relation(fields: [userId], references: [id])
-  project     Project? @relation(fields: [projectId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([type])
+  @@index([date])
 }
 
 // ============ PROYECTOS ============
 model Project {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
-  code        String   @unique
+  code        String        @unique
   description String?
   address     String?
   startDate   DateTime
   endDate     DateTime?
-  status      String   @default("planning") // planning, active, on_hold, completed, cancelled
-  budget      Float?
-  progress    Float    @default(0) // Porcentaje de avance 0-100
+  status      ProjectStatus @default(PLANNING)
+  budget      Decimal?      @db.Decimal(16,2)
+  progress    Float         @default(0)
   client      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  // Relaciones
   staff       ProjectStaff[]
   shipments   Shipment[]
   expenses    ProjectExpense[]
   pettyCash   PettyCash[]
   payroll     PayrollEntry[]
   invoices    Invoice[]
+
+  @@index([code])
+  @@index([status])
+  @@index([client])
 }
 
 model ProjectStaff {
   id        String   @id @default(cuid())
   projectId String
   workerId  String
-  role      String?  // Supervisor, obrero, etc.
+  role      String?
   startDate DateTime
   endDate   DateTime?
-  salary    Float?
+  salary    Decimal? @db.Decimal(12,2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([workerId])
 }
 
 model ProjectExpense {
   id        String   @id @default(cuid())
   projectId String
-  category  String   // materials, equipment, labor, etc.
-  amount    Float
+  category  String
+  amount    Decimal  @db.Decimal(16,2)
   description String
   date      DateTime @default(now())
-  receipt   String?  // URL del recibo
+  receipt   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([category])
+  @@index([date])
 }
 
+// ============ NÓMINA ============
 model PayrollEntry {
   id        String   @id @default(cuid())
   projectId String?
   workerId  String
   userId    String
-  period    String   // YYYY-MM
-  hours     Float?
-  overtime  Float?
-  salary    Float
-  bonuses   Float    @default(0)
-  deductions Float    @default(0)
-  total     Float
+  period    String
+  hours     Decimal? @db.Decimal(8,2)
+  overtime  Decimal? @db.Decimal(8,2)
+  salary    Decimal  @db.Decimal(12,2)
+  bonuses   Decimal  @default(0) @db.Decimal(12,2)
+  deductions Decimal @default(0) @db.Decimal(12,2)
+  total     Decimal  @db.Decimal(12,2)
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
-  project   Project? @relation(fields: [projectId], references: [id])
-  worker    Worker   @relation(fields: [workerId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([workerId])
+  @@index([userId])
+  @@index([period])
 }
 
 // ============ UBICACIÓN EN TIEMPO REAL ============
@@ -305,14 +429,15 @@ model LocationLog {
   longitude Float
   accuracy  Float?
   timestamp DateTime @default(now())
-  createdAt DateTime @default(now())
 
-  // Relaciones
-  user      User     @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([timestamp])
 }
 
 // ============ MÓDULO DE FACTURAS (FEL SAT GO Guatemala) ============
-
 model Company {
   id        String   @id @default(cuid())
   nit       String   @unique
@@ -320,110 +445,129 @@ model Company {
   address   String?
   email     String?
   phone     String?
-  
-  // SAT FEL credentials (assigned by Certificador)
-  felAlias  String? // usually an alias or username for API
-  felToken  String? // Token or password for certifier API
-  
+
+  felAlias  String?
+  felToken  String?
+
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   invoices  Invoice[]
+
+  @@index([nit])
+  @@index([isActive])
 }
 
 model Client {
   id        String   @id @default(cuid())
-  nit       String   @unique // NIT or CUI (DPI)
+  nit       String   @unique
   name      String
   address   String?
   email     String?
   phone     String?
-  
+
   invoices  Invoice[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([nit])
 }
 
 model Invoice {
-  id           String   @id @default(cuid())
-  invoiceType  String   @default("ISSUED") // "ISSUED" (Ventas) o "RECEIVED" (Gastos)
-  companyId    String?  // Opcional para facturas recibidas
+  id           String        @id @default(cuid())
+  invoiceType  InvoiceType   @default(ISSUED)
+  companyId    String?
   clientId     String
-  userId       String   // que usuario lo creo
-  projectId    String?  // opcional, enlace a proyecto
-  
-  date         DateTime @default(now())
-  
-  // SAT FEL specific
-  numero       String?  // Número de factura (assigned by SAT/Certificador)
+  userId       String
+  projectId    String?
+
+  date         DateTime      @default(now())
+
+  numero       String?
   serie        String?
-  cae          String?  // Código de Autorización de Emisión
-  certDate     DateTime? // Fecha de certificación
-  
-  currency     String   @default("GTQ")
-  subTotal     Float
-  tax          Float    // IVA
-  total        Float
-  
-  status       String   @default("draft") // draft, issued, cancelled
-  
-  // XML and PDF files returned from Certificador
+  cae          String?
+  certDate     DateTime?
+
+  currency     String        @default("GTQ")
+  subTotal     Decimal       @db.Decimal(16,2)
+  tax          Decimal       @db.Decimal(16,2)
+  total        Decimal       @db.Decimal(16,2)
+
+  status       InvoiceStatus @default(DRAFT)
+
   xmlUrl       String?
   pdfUrl       String?
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  company      Company? @relation(fields: [companyId], references: [id])
-  client       Client   @relation(fields: [clientId], references: [id])
-  creator      User     @relation(fields: [userId], references: [id])
-  project      Project? @relation(fields: [projectId], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  company      Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
   items        InvoiceItem[]
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([numero])
+  @@index([cae])
 }
 
 model InvoiceItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   invoiceId   String
   description String
-  quantity    Float
-  unitPrice   Float
-  total       Float
-  
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  quantity    Decimal @db.Decimal(12,3)
+  unitPrice   Decimal @db.Decimal(12,4)
+  total       Decimal @db.Decimal(16,2)
+
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
 
 // ============ CONTROL DE ACCESO (HIKVISION) ============
-
 model Terminal {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   name            String
   ip              String
-  port            Int      @default(80)
-  username        String   @default("admin")
-  password        String   // Debería estar encriptado en producción
-  serialNumber    String?  @unique
+  port            Int       @default(80)
+  username        String    @default("admin")
+  password        String
+  serialNumber    String?   @unique
   model           String?
   lastSeen        DateTime?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  // Relaciones
   accessLogs      AccessLog[]
+
+  @@index([ip])
+  @@index([isActive])
 }
 
 model AccessLog {
-  id          String   @id @default(cuid())
-  terminalId  String?
+  id          String       @id @default(cuid())
+  terminalId String?
   workerId    String?
   userId      String?
-  doorName    String?  // Ej. "Principal"
-  status      String   @default("success") // success, denied
-  timestamp   DateTime @default(now())
-  
-  terminal    Terminal? @relation(fields: [terminalId], references: [id])
-  worker      Worker?   @relation(fields: [workerId], references: [id])
-  user        User?     @relation(fields: [userId], references: [id])
+  doorName    String?
+  status      AccessStatus @default(SUCCESS)
+  timestamp   DateTime     @default(now())
+
+  terminal    Terminal?    @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  worker      Worker?      @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([terminalId])
+  @@index([workerId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([status])
 }

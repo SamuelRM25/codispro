@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,10 +34,12 @@ type Step = 'idle' | 'camera' | 'identify' | 'worker' | 'confirm'
 
 export default function BodegaDashboard() {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { data: session } = useSession()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  const user = session?.user
 
   const [step, setStep] = useState<Step>('idle')
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([])
@@ -54,7 +56,7 @@ export default function BodegaDashboard() {
       const res = await fetch('/api/tool-loans')
       const data = await res.json()
       setActiveLoans(data.filter((l: any) => !l.returnDate))
-    } catch { toast.error('Error al cargar préstamos') }
+    } catch { toast.error('Error al cargar prestamos') }
   }, [])
 
   const fetchTools = useCallback(async () => {
@@ -93,7 +95,7 @@ export default function BodegaDashboard() {
         videoRef.current.play()
       }
     } catch (err) {
-      toast.error('No se pudo acceder a la cámara. Verifica los permisos.')
+      toast.error('No se pudo acceder a la camara. Verifica los permisos.')
       setStep('idle')
     }
   }
@@ -114,7 +116,6 @@ export default function BodegaDashboard() {
     canvas.getContext('2d')?.drawImage(video, 0, 0)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
-    // Upload photo
     const blob = await (await fetch(dataUrl)).blob()
     const formData = new FormData()
     formData.append('file', blob, 'loan-photo.jpg')
@@ -127,7 +128,7 @@ export default function BodegaDashboard() {
   }
 
   const filteredTools = tools.filter(t =>
-    t.status === 'available' &&
+    t.status === 'AVAILABLE' &&
     (t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.category?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -152,7 +153,7 @@ export default function BodegaDashboard() {
         toast.error(err.error || 'Error al registrar')
         return
       }
-      toast.success(`✅ Herramienta "${selectedTool.name}" registrada como prestada`)
+      toast.success(`Herramienta "${selectedTool.name}" registrada como prestada`)
       setStep('idle')
       setCapturedPhoto(null)
       setSelectedTool(null)
@@ -173,7 +174,7 @@ export default function BodegaDashboard() {
       fetchActiveLoans()
       fetchTools()
     } catch {
-      toast.error('Error al registrar devolución')
+      toast.error('Error al registrar devolucion')
     }
   }
 
@@ -185,6 +186,10 @@ export default function BodegaDashboard() {
     setSelectedWorker('')
   }
 
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' })
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white font-sans">
       {/* Header */}
@@ -194,16 +199,16 @@ export default function BodegaDashboard() {
         </div>
         <div>
           <h1 className="text-xl font-black uppercase tracking-tight">Dashboard Bodega</h1>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Control de herramientas · {user?.name}</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Control de herramientas &middot; {user?.name || 'Usuario'}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold uppercase">
-            {activeLoans.length} En Préstamo
+            {activeLoans.length} En Prestamo
           </Badge>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => { logout(); router.push('/') }}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
             className="text-slate-400 hover:text-white hover:bg-red-500/20 rounded-xl"
           >
             <LogOut className="w-5 h-5" />
@@ -213,7 +218,7 @@ export default function BodegaDashboard() {
 
       <div className="p-6 max-w-4xl mx-auto space-y-6">
 
-        {/* MODAL FLUJO */}
+        {/* MODAL FLOW */}
         {step !== 'idle' && (
           <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
             <div className="bg-[#1e293b] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
@@ -221,7 +226,7 @@ export default function BodegaDashboard() {
               {/* STEP: CAMERA */}
               {step === 'camera' && (
                 <div className="p-6 space-y-4">
-                  <h2 className="text-lg font-black uppercase">📸 Capturar Foto de Herramienta</h2>
+                  <h2 className="text-lg font-black uppercase">Capturar Foto de Herramienta</h2>
                   <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
                     <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
                     <canvas ref={canvasRef} className="hidden" />
@@ -239,14 +244,14 @@ export default function BodegaDashboard() {
               {/* STEP: IDENTIFY */}
               {step === 'identify' && (
                 <div className="p-6 space-y-4">
-                  <h2 className="text-lg font-black uppercase">🔍 Identificar Herramienta</h2>
+                  <h2 className="text-lg font-black uppercase">Identificar Herramienta</h2>
                   {capturedPhoto && (
                     <img src={capturedPhoto} alt="Capturada" className="w-full h-40 object-cover rounded-2xl" />
                   )}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
-                      placeholder="Buscar por nombre, código de barras..."
+                      placeholder="Buscar por nombre, codigo de barras..."
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
                       className="pl-10 bg-slate-800 border-none text-white rounded-xl"
@@ -269,7 +274,7 @@ export default function BodegaDashboard() {
                           <Wrench className="w-5 h-5 text-amber-400 flex-shrink-0" />
                           <div>
                             <p className="font-bold text-white">{tool.name}</p>
-                            <p className="text-xs text-slate-400">{tool.category || 'Sin categoría'} {tool.barcode ? `· ${tool.barcode}` : ''}</p>
+                            <p className="text-xs text-slate-400">{tool.category || 'Sin categoria'} {tool.barcode ? ` - ${tool.barcode}` : ''}</p>
                           </div>
                         </div>
                       </button>
@@ -282,7 +287,7 @@ export default function BodegaDashboard() {
               {/* STEP: WORKER */}
               {step === 'worker' && (
                 <div className="p-6 space-y-4">
-                  <h2 className="text-lg font-black uppercase">👷 Seleccionar Trabajador</h2>
+                  <h2 className="text-lg font-black uppercase">Seleccionar Trabajador</h2>
                   {selectedTool && (
                     <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3">
                       <Wrench className="w-5 h-5 text-amber-400" />
@@ -293,7 +298,7 @@ export default function BodegaDashboard() {
                     </div>
                   )}
                   <div>
-                    <Label className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 block">Trabajador que llevará la herramienta</Label>
+                    <Label className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 block">Trabajador que llevara la herramienta</Label>
                     <select
                       value={selectedWorker}
                       onChange={e => setSelectedWorker(e.target.value)}
@@ -317,7 +322,7 @@ export default function BodegaDashboard() {
               {/* STEP: CONFIRM */}
               {step === 'confirm' && selectedTool && (
                 <div className="p-6 space-y-4">
-                  <h2 className="text-lg font-black uppercase">✅ Confirmar Préstamo</h2>
+                  <h2 className="text-lg font-black uppercase">Confirmar Prestamo</h2>
                   {capturedPhoto && (
                     <img src={capturedPhoto} alt="Referencia" className="w-full h-40 object-cover rounded-2xl" />
                   )}
@@ -336,12 +341,12 @@ export default function BodegaDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400 text-sm">Bodeguero</span>
-                      <span className="font-bold text-white">{user?.name}</span>
+                      <span className="font-bold text-white">{user?.name || 'Usuario'}</span>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <Button onClick={handleSubmitLoan} disabled={submitting} className="flex-1 bg-emerald-500 hover:bg-emerald-600 font-black rounded-xl">
-                      {submitting ? 'REGISTRANDO...' : '✅ CONFIRMAR PRÉSTAMO'}
+                      {submitting ? 'REGISTRANDO...' : 'CONFIRMAR PRESTAMO'}
                     </Button>
                     <Button variant="outline" onClick={cancel} className="rounded-xl border-slate-600 text-slate-300">CANCELAR</Button>
                   </div>
@@ -358,14 +363,14 @@ export default function BodegaDashboard() {
         >
           <Camera className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
           <span className="text-2xl font-black uppercase text-white">Sacar Herramienta</span>
-          <span className="text-amber-100/80 text-sm font-bold uppercase tracking-widest">Tocar para activar cámara</span>
+          <span className="text-amber-100/80 text-sm font-bold uppercase tracking-widest">Tocar para activar camara</span>
         </button>
 
         {/* Active Loans List */}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <Clock className="w-5 h-5 text-slate-400" />
-            <h2 className="text-lg font-black uppercase tracking-tight text-slate-300">Herramientas en Préstamo</h2>
+            <h2 className="text-lg font-black uppercase tracking-tight text-slate-300">Herramientas en Prestamo</h2>
             <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 ml-auto">{activeLoans.length}</Badge>
           </div>
 
@@ -373,7 +378,7 @@ export default function BodegaDashboard() {
             <Card className="border-none bg-[#1e293b]">
               <CardContent className="p-8 text-center">
                 <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-                <p className="text-slate-400 font-bold">Todas las herramientas están en bodega</p>
+                <p className="text-slate-400 font-bold">Todas las herramientas estan en bodega</p>
               </CardContent>
             </Card>
           ) : (

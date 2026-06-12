@@ -37,7 +37,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import ImageUpload from '@/components/image-upload'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 
 interface Transaction {
   id: string
@@ -55,18 +55,20 @@ interface Transaction {
 
 export default function PettyCashPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'INCOME' | 'EXPENSE'>('all')
   const [monthFilter, setMonthFilter] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const user = session?.user
+
   const [formData, setFormData] = useState({
-    type: 'expense',
+    type: 'EXPENSE',
     amount: '',
     category: '',
     description: '',
@@ -126,7 +128,7 @@ export default function PettyCashPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user?.id) {
-      toast.error('Sesión no encontrada. Por favor reingresa.')
+      toast.error('Sesion no encontrada. Por favor reingresa.')
       return
     }
 
@@ -144,18 +146,18 @@ export default function PettyCashPage() {
 
       if (!response.ok) throw new Error('Error al registrar')
 
-      toast.success('Transacción registrada')
+      toast.success('Transaccion registrada')
       setDialogOpen(false)
       resetForm()
       fetchTransactions()
     } catch (error) {
-      toast.error('Error al registrar transacción')
+      toast.error('Error al registrar transaccion')
     }
   }
 
   const resetForm = () => {
     setFormData({
-      type: 'expense',
+      type: 'EXPENSE',
       amount: '',
       category: '',
       description: '',
@@ -171,8 +173,8 @@ export default function PettyCashPage() {
       t.category?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : []
 
-  const income = Array.isArray(transactions) ? transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) : 0
-  const expense = Array.isArray(transactions) ? transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) : 0
+  const income = Array.isArray(transactions) ? transactions.filter((t) => t.type === 'INCOME').reduce((sum, t) => sum + Number(t.amount), 0) : 0
+  const expense = Array.isArray(transactions) ? transactions.filter((t) => t.type === 'EXPENSE').reduce((sum, t) => sum + Number(t.amount), 0) : 0
   const balance = income - expense
 
   return (
@@ -210,8 +212,8 @@ export default function PettyCashPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="income">Ingresos</SelectItem>
-                  <SelectItem value="expense">Egresos</SelectItem>
+                  <SelectItem value="INCOME">Ingresos</SelectItem>
+                  <SelectItem value="EXPENSE">Egresos</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -226,12 +228,12 @@ export default function PettyCashPage() {
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Nueva Transacción
+                  Nueva Transaccion
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Nueva Transacción</DialogTitle>
+                  <DialogTitle>Nueva Transaccion</DialogTitle>
                   <DialogDescription>
                     Registre un ingreso o egreso
                   </DialogDescription>
@@ -248,8 +250,8 @@ export default function PettyCashPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="income">Ingreso</SelectItem>
-                          <SelectItem value="expense">Egreso</SelectItem>
+                          <SelectItem value="INCOME">Ingreso</SelectItem>
+                          <SelectItem value="EXPENSE">Egreso</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -278,7 +280,7 @@ export default function PettyCashPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="category">Categoría</Label>
+                      <Label htmlFor="category">Categoria</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -287,7 +289,7 @@ export default function PettyCashPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sin categoría</SelectItem>
+                          <SelectItem value="none">Sin categoria</SelectItem>
                           <SelectItem value="fuel">Combustible</SelectItem>
                           <SelectItem value="supplies">Suministros</SelectItem>
                           <SelectItem value="food">Alimentos</SelectItem>
@@ -320,7 +322,7 @@ export default function PettyCashPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Descripción *</Label>
+                    <Label htmlFor="description">Descripcion *</Label>
                     <Input
                       id="description"
                       value={formData.description}
@@ -406,8 +408,8 @@ export default function PettyCashPage() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Tipo</TableHead>
-                      <TableHead>Categoría</TableHead>
-                      <TableHead>Descripción</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descripcion</TableHead>
                       <TableHead>Monto</TableHead>
                       <TableHead>Proyecto</TableHead>
                       <TableHead>Usuario</TableHead>
@@ -420,8 +422,8 @@ export default function PettyCashPage() {
                           {format(new Date(transaction.date), 'dd MMM yyyy', { locale: es })}
                         </TableCell>
                         <TableCell>
-                          <Badge className={transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'}>
-                            {transaction.type === 'income' ? 'Ingreso' : 'Egreso'}
+                          <Badge className={transaction.type === 'INCOME' ? 'bg-green-500' : 'bg-red-500'}>
+                            {transaction.type === 'INCOME' ? 'Ingreso' : 'Egreso'}
                           </Badge>
                         </TableCell>
                         <TableCell>{transaction.category || '-'}</TableCell>
@@ -438,8 +440,8 @@ export default function PettyCashPage() {
                             </a>
                           )}
                         </TableCell>
-                        <TableCell className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.type === 'income' ? '+' : '-'}Q{transaction.amount.toFixed(2)}
+                        <TableCell className={`font-medium ${transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
+                          {transaction.type === 'INCOME' ? '+' : '-'}Q{Number(transaction.amount).toFixed(2)}
                         </TableCell>
                         <TableCell>
                           {transaction.project ? transaction.project.name : '-'}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Users,
@@ -30,11 +30,13 @@ const COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'
 
 export default function DashboardWidgetsPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [time, setTime] = useState(new Date())
+
+  const user = session?.user
 
   useEffect(() => {
     setIsClient(true)
@@ -78,7 +80,7 @@ export default function DashboardWidgetsPage() {
         <div className="space-y-1">
           <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic border-l-4 border-blue-600 pl-4">Panel de Inteligencia</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-tight pl-5">
-            Estado Maestro de Operaciones. Bienvenido, <span className="font-bold text-slate-900 dark:text-white uppercase">{user?.name}</span>.
+            Estado Maestro de Operaciones. Bienvenido, <span className="font-bold text-slate-900 dark:text-white uppercase">{user?.name || 'Usuario'}</span>.
           </p>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -10,27 +10,28 @@ import { Camera, Truck, MapPin, Package, CheckCircle, Clock, Navigation, LogOut 
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-type ShipmentStatus = 'pending' | 'verified' | 'in_transit' | 'received' | 'discrepancy'
+type ShipmentStatus = 'PENDING' | 'VERIFIED' | 'IN_TRANSIT' | 'RECEIVED' | 'DISCREPANCY'
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
-  pending: 'Pendiente',
-  verified: 'Verificado',
-  in_transit: 'En Ruta',
-  received: 'Entregado',
-  discrepancy: 'Discrepancia',
+  PENDING: 'Pendiente',
+  VERIFIED: 'Verificado',
+  IN_TRANSIT: 'En Ruta',
+  RECEIVED: 'Entregado',
+  DISCREPANCY: 'Discrepancia',
 }
 
 const STATUS_COLORS: Record<ShipmentStatus, string> = {
-  pending: 'bg-slate-500',
-  verified: 'bg-blue-500',
-  in_transit: 'bg-amber-500',
-  received: 'bg-emerald-500',
-  discrepancy: 'bg-red-500',
+  PENDING: 'bg-slate-500',
+  VERIFIED: 'bg-blue-500',
+  IN_TRANSIT: 'bg-amber-500',
+  RECEIVED: 'bg-emerald-500',
+  DISCREPANCY: 'bg-red-500',
 }
 
 export default function VehiculoDashboard() {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { data: session } = useSession()
+  const user = session?.user
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -51,10 +52,10 @@ export default function VehiculoDashboard() {
       const res = await fetch('/api/shipments')
       const data = await res.json()
       const mine = data.filter(
-        (s: any) => s.status !== 'received' && s.status !== 'discrepancy'
+        (s: any) => s.status !== 'RECEIVED' && s.status !== 'DISCREPANCY'
       )
       setShipments(mine)
-      const transit = mine.find((s: any) => s.status === 'in_transit')
+      const transit = mine.find((s: any) => s.status === 'IN_TRANSIT')
       if (transit) { setActiveShipment(transit); setInTransit(true) }
     } catch { toast.error('Error al cargar envíos') }
     finally { setLoading(false) }
@@ -200,7 +201,7 @@ export default function VehiculoDashboard() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => { logout(); router.push('/') }}
+            onClick={() => { signOut(); router.push('/') }}
             className="text-slate-400 hover:text-white hover:bg-red-500/20 rounded-xl"
           >
             <LogOut className="w-5 h-5" />
@@ -271,7 +272,7 @@ export default function VehiculoDashboard() {
                 </div>
 
                 {/* Actions */}
-                {shipment.status === 'verified' && (
+                {shipment.status === 'VERIFIED' && (
                   <div className="space-y-3 pt-2">
                     {capturedPhoto ? (
                       <div className="relative">
@@ -301,7 +302,7 @@ export default function VehiculoDashboard() {
                   </div>
                 )}
 
-                {shipment.status === 'pending' && (
+                {shipment.status === 'PENDING' && (
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center">
                     <Clock className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                     <p className="text-blue-400 font-bold text-sm">Esperando verificación del admin...</p>

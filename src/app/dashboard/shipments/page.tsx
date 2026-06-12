@@ -45,7 +45,7 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 
 interface ShipmentItem {
   id: string
@@ -72,7 +72,8 @@ interface Shipment {
 
 export default function ShipmentsPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
+  const user = session?.user
   const [shipments, setShipments] = useState<Shipment[]>([])
   const [vehicles, setVehicles] = useState<any[]>([])
   const [workers, setWorkers] = useState<any[]>([])
@@ -123,7 +124,7 @@ export default function ShipmentsPage() {
       const response = await fetch('/api/vehicles')
       const data = await response.json()
       if (response.ok && Array.isArray(data)) {
-        setVehicles(data.filter((v: any) => v.status === 'available'))
+        setVehicles(data.filter((v: any) => v.status === 'AVAILABLE'))
       } else {
         setVehicles([])
         toast.error('Error al cargar vehículos')
@@ -281,10 +282,10 @@ export default function ShipmentsPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      pending: 'bg-yellow-500',
-      sent: 'bg-blue-500',
-      received: 'bg-green-500',
-      discrepancy: 'bg-red-500',
+      PENDING: 'bg-yellow-500',
+      SENT: 'bg-blue-500',
+      RECEIVED: 'bg-green-500',
+      DISCREPANCY: 'bg-red-500',
     }
     return variants[status] || 'bg-slate-500'
   }
@@ -482,7 +483,7 @@ export default function ShipmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {shipments.filter((s) => s.status === 'pending').length}
+                {shipments.filter((s) => s.status === 'PENDING').length}
               </div>
             </CardContent>
           </Card>
@@ -494,7 +495,7 @@ export default function ShipmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {shipments.filter((s) => s.status === 'sent').length}
+                {shipments.filter((s) => s.status === 'SENT').length}
               </div>
             </CardContent>
           </Card>
@@ -506,7 +507,7 @@ export default function ShipmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {shipments.filter((s) => s.status === 'discrepancy').length}
+                {shipments.filter((s) => s.status === 'DISCREPANCY').length}
               </div>
             </CardContent>
           </Card>
@@ -552,7 +553,7 @@ export default function ShipmentsPage() {
                                   </Badge>
                                   <span className="font-medium">{item.materialName}</span>
                                 </div>
-                                {shipment.status !== 'pending' && shipment.status !== 'sent' && item.receivedQuantity !== undefined && (
+                                {shipment.status !== 'PENDING' && shipment.status !== 'SENT' && item.receivedQuantity !== undefined && (
                                   <div className="flex items-center gap-2 pl-2 text-xs">
                                     <Badge variant="outline" className={`font-normal ${item.receivedQuantity !== item.sentQuantity ? 'text-red-600 border-red-200 bg-red-50' : 'text-green-600 border-green-200 bg-green-50'}`}>
                                       Recibido: {item.receivedQuantity} {item.unit}
@@ -583,17 +584,17 @@ export default function ShipmentsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusBadge(shipment.status)}>
-                            {shipment.status === 'pending'
+                            {shipment.status === 'PENDING'
                               ? 'Pendiente'
-                              : shipment.status === 'sent'
+                              : shipment.status === 'SENT'
                                 ? 'Enviado'
-                                : shipment.status === 'received'
+                                : shipment.status === 'RECEIVED'
                                   ? 'Recibido'
                                   : 'Discrepancia'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {shipment.status !== 'received' && shipment.status !== 'discrepancy' && (
+                          {shipment.status !== 'RECEIVED' && shipment.status !== 'DISCREPANCY' && (
                             <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
                               <DialogTrigger asChild>
                                 <Button

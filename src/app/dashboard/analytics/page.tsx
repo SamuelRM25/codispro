@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth-store'
+import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, TrendingUp, TrendingDown, Users, Wrench, Truck, Building2, Package, DollarSign, AlertTriangle, RefreshCw, Download } from 'lucide-react'
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -82,9 +80,11 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function AnalyticsPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { data: session } = useSession()
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const user = session?.user
 
   useEffect(() => {
     fetchMetrics()
@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
       const data = await response.json()
       setMetrics(data)
     } catch (error) {
-      toast.error('Error al cargar métricas')
+      toast.error('Error al cargar metricas')
     } finally {
       setLoading(false)
     }
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
   const growthData = [
     { name: 'Trabajadores', value: metrics.weeklyGrowth.workers },
     { name: 'Herramientas', value: metrics.weeklyGrowth.tools },
-    { name: 'Vehículos', value: metrics.weeklyGrowth.vehicles },
+    { name: 'Vehiculos', value: metrics.weeklyGrowth.vehicles },
     { name: 'Proyectos', value: metrics.weeklyGrowth.projects },
   ]
 
@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
 
   const utilizationData = [
     { name: 'Herramientas', uso: metrics.summary.toolsInUse, disponible: metrics.summary.toolsAvailable },
-    { name: 'Vehículos', uso: metrics.summary.vehiclesInUse, disponible: metrics.summary.vehiclesAvailable },
+    { name: 'Vehiculos', uso: metrics.summary.vehiclesInUse, disponible: metrics.summary.vehiclesAvailable },
   ]
 
   return (
@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold">Dashboard Avanzado</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Métricas KPI y análisis de datos
+              Metricas KPI y analisis de datos
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
             color="orange"
           />
           <KPICard
-            title="Vehículos"
+            title="Vehiculos"
             value={metrics.summary.totalVehicles}
             active={metrics.summary.vehiclesInUse}
             icon={Truck}
@@ -226,7 +226,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <Wrench className="w-4 h-4" />
                   <span>
-                    {metrics.alerts.overdueTools} herramientas sin devolver (más de 24h)
+                    {metrics.alerts.overdueTools} herramientas sin devolver (mas de 24h)
                   </span>
                 </div>
               )}
@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <Package className="w-4 h-4" />
                   <span>
-                    {metrics.alerts.pendingShipments} envíos pendientes
+                    {metrics.alerts.pendingShipments} envios pendientes
                   </span>
                 </div>
               )}
@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Estado de Proyectos</CardTitle>
-              <CardDescription>Distribución por estado</CardDescription>
+              <CardDescription>Distribucion por estado</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -344,8 +344,8 @@ export default function AnalyticsPage() {
           {/* Tool/Vehicle Utilization */}
           <Card>
             <CardHeader>
-              <CardTitle>Utilización</CardTitle>
-              <CardDescription>Herramientas y vehículos en uso</CardDescription>
+              <CardTitle>Utilizacion</CardTitle>
+              <CardDescription>Herramientas y vehiculos en uso</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
         {metrics.recentShipments.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Envíos Recientes</CardTitle>
+              <CardTitle>Envios Recientes</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
